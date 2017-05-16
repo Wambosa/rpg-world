@@ -7,12 +7,13 @@ RPG.GameState = {
     this.currentLevel = currentLevel ? currentLevel : 'map1';
 
     //constants
-    this.PLAYER_SPEED = 90;
-    this.playerScale = 0.8;
+    this.PLAYER_SPEED = 100;
+    this.playerScale = 1;
+    this.TILE_SIZE = 40;
     
     //no gravity in a top-down game
     this.game.physics.arcade.gravity.y = 0;    
-
+    this.input.addPointer();
     //keyboard cursors
     this.cursors = this.game.input.keyboard.createCursorKeys();
     this.wasd = {
@@ -31,31 +32,23 @@ RPG.GameState = {
   },   
   update: function() {  
 
-    
+
     this.game.physics.arcade.collide(this.player, this.collisionLayer);
     this.game.physics.arcade.collide(this.player, this.interactiveCollisionLayer);
+
     
     //touch movement
 
-    this.player.body.drag.x = 200;
-    this.player.body.drag.y = 200;
- 
-    if(this.game.input.activePointer.isDown){
-      var x = this.game.input.activePointer.worldX;
-      var y = this.game.input.activePointer.worldY;
-      if(this.player.x < x - 10){
-        this.player.body.velocity.x = 90;
-      }else if(this.player.x > x + 10){
-        this.player.body.velocity.x = -90;
-      }
-      
-      if (this.player.y < y - 10){
-        this.player.body.velocity.y = 90;
-      }else if(this.player.y > y + 10){
-        this.player.body.velocity.y = -90;
-      }
+    this.player.body.drag.x = 500;
+    this.player.body.drag.y = 500;
+    
+    if(this.game.input.mousePointer.isDown){
+      var x = this.game.input.mousePointer.worldX;
+      var y = this.game.input.mousePointer.worldY;
+      this.spriteToInput( this.player, this.PLAYER_SPEED, x, y);
     }
     
+
     
     //wasd key movement
     if(this.wasd.down.isDown){
@@ -79,7 +72,18 @@ RPG.GameState = {
     
     
     
-  },     
+  },  
+  
+  spriteToInput: function(sprite, velocity, x, y){
+    
+    
+    
+    var startingAngle = Math.atan2(y - sprite.body.y, x - sprite.body.x);
+    
+    this.player.body.velocity.x = Math.cos(startingAngle) * velocity;
+    this.player.body.velocity.y = Math.sin(startingAngle) * velocity;
+    
+  },
   loadLevel: function(){
     //create a tilemap object
     this.map = this.add.tilemap(this.currentLevel);
@@ -90,7 +94,7 @@ RPG.GameState = {
     //create tile layers
     this.backgroundLayer = this.map.createLayer('backgroundLayer');
     this.backgroundLayer.inputEnabled = true;
-    //this.backgroundLayer.events.onInputDown.add(this.movePlayer, this);
+    //this.backgroundLayer.events.onInputDown.add(this.spriteToInput, this);
     this.collisionLayer = this.map.createLayer('collisionLayer');
     this.interactiveLayer = this.map.createLayer('interactiveLayer');
     this.interactiveCollisionLayer = this.map.createLayer('interactiveCollisionLayer');
@@ -127,14 +131,15 @@ RPG.GameState = {
     this.player = new RPG.Player(this, 80, 400, playerData);
     //add player to world
     this.add.existing(this.player);
+    this.player.body.setSize(this.player.width * 0.3, this.player.height * 0.3, 0, 0);
     this.game.camera.follow(this.player);
     //this.initGUI();
   },
   gameOver: function() {
     this.game.state.start('Game', true, false, this.currentLevel);
   },
-  movePlayer: function(sprite, event){
-    
+  movePlayer: function(sprite, x, y){
+    this.game.tween.add(this.player).to({x: x, y: y}, 250, false);
   }
 /*
   initGUI: function(){

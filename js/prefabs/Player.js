@@ -13,6 +13,8 @@ RPG.Player = function(state, x, y, data) {
     
     //enable physics
     this.game.physics.arcade.enable(this);
+    this.body.collideWorldBounds = true;
+    this.gridPosition = new Phaser.Point(0, 0);
 };
 
 RPG.Player.prototype = Object.create(Phaser.Sprite.prototype);
