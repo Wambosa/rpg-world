@@ -30,7 +30,7 @@ RPG.PreloadState = {
     this.load.image('tilesheet', 'assets/images/terrains.png');  
 
     //load game data
-    this.load.tilemap('map1', 'assets/levels/world.json', null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('map1', 'assets/levels/world1.json', null, Phaser.Tilemap.TILED_JSON);
   },
   create: function() {
     this.state.start('Game');

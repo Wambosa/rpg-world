@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" orientation="orthogonal" renderorder="right-down" width="26" height="20" tilewidth="40" tileheight="40" nextobjectid="61">
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="26" height="20" tilewidth="40" tileheight="40" nextobjectid="69">
  <tileset firstgid="1" name="terrains" tilewidth="40" tileheight="40" tilecount="16" columns="8">
   <image source="../../Downloads/M9-RPG/01-basic-map/assets/images/terrains.png" width="320" height="80"/>
  </tileset>
@@ -540,11 +540,11 @@
    <tile gid="10"/>
    <tile gid="10"/>
    <tile gid="10"/>
+   <tile gid="0"/>
    <tile gid="10"/>
    <tile gid="10"/>
    <tile gid="10"/>
    <tile gid="10"/>
-   <tile gid="10"/>
    <tile gid="5"/>
    <tile gid="5"/>
    <tile gid="5"/>
@@ -571,32 +571,6 @@
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
-   <tile gid="5"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="5"/>
-   <tile gid="0"/>
-   <tile gid="5"/>
-   <tile gid="10"/>
-   <tile gid="0"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="0"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="5"/>
    <tile gid="5"/>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -611,33 +585,7 @@
    <tile gid="0"/>
    <tile gid="2"/>
    <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
    <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="0"/>
-   <tile gid="5"/>
-   <tile gid="5"/>
-   <tile gid="5"/>
-   <tile gid="5"/>
-   <tile gid="5"/>
-   <tile gid="0"/>
-   <tile gid="5"/>
-   <tile gid="10"/>
-   <tile gid="0"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
-   <tile gid="2"/>
    <tile gid="2"/>
    <tile gid="2"/>
    <tile gid="0"/>
@@ -666,6 +614,58 @@
    <tile gid="2"/>
    <tile gid="2"/>
    <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="5"/>
+   <tile gid="5"/>
+   <tile gid="5"/>
+   <tile gid="5"/>
+   <tile gid="5"/>
+   <tile gid="0"/>
+   <tile gid="5"/>
+   <tile gid="10"/>
+   <tile gid="0"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="5"/>
+   <tile gid="5"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="5"/>
+   <tile gid="0"/>
+   <tile gid="5"/>
+   <tile gid="10"/>
+   <tile gid="0"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
+   <tile gid="2"/>
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -763,7 +763,7 @@
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="5"/>
-   <tile gid="10"/>
+   <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -996,7 +996,7 @@
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
-   <tile gid="5"/>
+   <tile gid="0"/>
    <tile gid="10"/>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -1033,7 +1033,7 @@
    <tile gid="10"/>
    <tile gid="10"/>
    <tile gid="10"/>
-   <tile gid="10"/>
+   <tile gid="0"/>
    <tile gid="10"/>
    <tile gid="10"/>
    <tile gid="10"/>
@@ -2339,14 +2339,6 @@
     <property name="type" value="enemy"/>
    </properties>
   </object>
-  <object id="34" gid="16" x="899" y="745" width="40" height="40">
-   <properties>
-    <property name="asset" value="scroll"/>
-    <property name="isQuest" value="1"/>
-    <property name="questCode" value="magic-scroll"/>
-    <property name="type" value="item"/>
-   </properties>
-  </object>
   <object id="35" gid="16" x="104" y="694" width="40" height="40">
    <properties>
     <property name="asset" value="strangeItem"/>
@@ -2427,5 +2419,10 @@
   <object id="58" gid="4" x="124" y="556" width="40" height="40"/>
   <object id="59" gid="4" x="124" y="596" width="40" height="40"/>
   <object id="60" gid="4" x="124" y="636" width="40" height="40"/>
+  <object id="63" name="south" type="portal" gid="16" x="400" y="824" width="40" height="40"/>
+  <object id="65" name="west" type="portal" gid="16" x="-17" y="403" width="40" height="40"/>
+  <object id="66" name="north" type="portal" gid="16" x="440" y="19" width="40" height="40"/>
+  <object id="67" name="east" type="portal" gid="16" x="1019" y="720" width="40" height="40"/>
+  <object id="68" name="player" type="spawn" gid="10" x="248" y="449" width="40" height="40"/>
  </objectgroup>
 </map>
