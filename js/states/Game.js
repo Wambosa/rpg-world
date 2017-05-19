@@ -2,12 +2,12 @@ var RPG = RPG || {};
 
 RPG.GameState = {
 
-  init: function(currentLevel) {    
+  init: function(mapIndex) {    
     //keep track of the current level
-    this.currentLevel = currentLevel ? currentLevel : 'map1';
+    this.currentLevel = mapIndex ? mapIndex : {xIndex:0, yIndex:0};
 
     //constants
-    this.PLAYER_SPEED = 100;
+    this.PLAYER_SPEED = 200;
     this.playerScale = 1;
     this.TILE_SIZE = 40;
     this.noClip = false;
@@ -31,11 +31,13 @@ RPG.GameState = {
     this.loadLevel();
   },   
   update: function() {  
-
+      
     if(!this.noClip){
       this.game.physics.arcade.collide(this.player, this.collisionLayer);
       this.game.physics.arcade.collide(this.player, this.interactiveCollisionLayer);
     }
+    this.game.physics.arcade.collide(this.player, this.portals, this.warpPlayer);
+
 
     if (this.cursors.down.isDown){
       this.noClip = true;
@@ -71,18 +73,18 @@ RPG.GameState = {
     
     //wasd key movement
     if(this.wasd.down.isDown){
-      this.destination.y = this.player.body.y + 20;
+      this.destination.y = this.player.body.y + (this.map.tileHeight / 2);
       this.spriteToInput(this.player, this.PLAYER_SPEED, this.destination.x, this.destination.y);
     }else if(this.wasd.up.isDown){
-      this.destination.y = this.player.body.y - 20;
+      this.destination.y = this.player.body.y - (this.map.tileHeight / 2);
       this.spriteToInput(this.player, this.PLAYER_SPEED, this.destination.x, this.destination.y);
     }
     
     if(this.wasd.right.isDown){
-      this.destination.x = this.player.body.x + 20;
+      this.destination.x = this.player.body.x + (this.map.tileHeight / 2);
       this.spriteToInput(this.player, this.PLAYER_SPEED, this.destination.x, this.destination.y);
     }else if(this.wasd.left.isDown){
-      this.destination.x = this.player.body.x - 20;
+      this.destination.x = this.player.body.x - (this.map.tileHeight / 2);
       this.spriteToInput(this.player, this.PLAYER_SPEED, this.destination.x, this.destination.y);
     }
     
@@ -103,8 +105,8 @@ RPG.GameState = {
   },
   loadLevel: function(){
     //create a tilemap object
-    this.map = this.add.tilemap(this.currentLevel);
-    
+    this.map = this.add.tilemap(this.currentLevel.xIndex+'-'+this.currentLevel.yIndex);
+    console.log(this.currentLevel);
     //join the tile images to the json data
     this.map.addTilesetImage('terrains', 'tilesheet');
     
@@ -115,7 +117,7 @@ RPG.GameState = {
     this.collisionLayer = this.map.createLayer('collisionLayer');
     this.interactiveLayer = this.map.createLayer('interactiveLayer');
     this.interactiveCollisionLayer = this.map.createLayer('interactiveCollisionLayer');
-    this.objectLayer = this.map.createLayer('objectLayer');
+
     
     //send background to the back
     this.game.world.sendToBack(this.backgroundLayer);
@@ -125,7 +127,36 @@ RPG.GameState = {
     this.map.setCollisionBetween(1,16, true, 'interactiveCollisionLayer');
     this.map.setCollisionBetween(1,16, true, 'interactiveLayer');
     
+    //add portal sprites from the object layer
+    this.portals = this.add.group();
+    var portalArray = this.findObjectsByType('portal', this.map, 'objectsLayer');
+    var i;
+    for(i=0; i<4; i++){
+      var portal = this.add.sprite(portalArray[i].x, portalArray[i].y, 'arrow');
+      portal.direction = portalArray[i].properties.direction;
+      this.game.physics.arcade.enableBody(portal);
+      
+      this.portals.add(portal);
+    }
+    this.portals.setAll('body.immovable', true);
+    /*
+    this.portal1 = this.add.sprite(portalArray[0].x, portalArray[0].y, 'arrow');
+    this.portal1.name = portalArray[0].properties.direction;
+    this.portal2 = this.add.sprite(portalArray[1].x, portalArray[1].y, 'arrow');
+    this.portal2.name = portalArray[1].properties.direction;
+    this.portal3 = this.add.sprite(portalArray[2].x, portalArray[2].y, 'arrow');
+    this.portal3.name = portalArray[2].properties.direction;
+    this.portal4 = this.add.sprite(portalArray[3].x, portalArray[3].y, 'arrow');
+    this.portal4.name = portalArray[3].properties.direction;
     
+    this.portals.add(this.portal1);
+    this.portals.add(this.portal2);
+    this.portals.add(this.portal3);
+    this.portals.add(this.portal4);
+    */
+    
+    
+  
     //resize the world to fit the layer
     this.collisionLayer.resizeWorld();
     
@@ -140,13 +171,14 @@ RPG.GameState = {
       attack: 12, 
       defense: 8,
       gold: 100,
-      
+      mapX: RPG.GameState.currentLevel.xIndex,
+      mapY: RPG.GameState.currentLevel.yIndex,
       //quest
       quests: []
       
     };
-    
-    this.player = new RPG.Player(this, 80, 400, playerData);
+    //var playerArray = this.findObjectsByType('player', this.map, 'objectsLayer');
+    this.player = new RPG.Player(this, this.game.world.width*0.5, this.game.world.height*0.5, playerData);
     //add player to world
     this.add.existing(this.player);
     this.player.body.setSize(this.player.width * 0.3, this.player.height * 0.3, 0, 0);
@@ -155,11 +187,29 @@ RPG.GameState = {
     //this.initGUI();
   },
   gameOver: function() {
-    this.game.state.start('Game', true, false, this.currentLevel);
+    this.game.state.start('Game', true, false, '0-0');
   },
-  movePlayer: function(sprite, x, y){
-    this.game.tween.add(this.player).to({x: x, y: y}, 250, false);
-  }
+  warpPlayer: function(player, portal){
+    console.log(portal.direction+':'+ this.currentLevel);
+    if(portal.direction == 'up'){
+      player.data.mapY += 1;
+      var mapIndex = {
+        xIndex: player.data.mapX,
+        yIndex: player.data.mapY, 
+      };
+      RPG.game.state.start('Game', true, false, mapIndex);
+    }
+  },
+  findObjectsByType: function(targetType, tilemap, layer){
+    var result = [];
+    tilemap.objects[layer].forEach(function(element){
+      if(element.type == targetType){
+        element.y -= tilemap.tileHeight;
+        result.push(element);
+      }
+    }, this);
+    return result;
+  },
 /*
   initGUI: function(){
     //touch controls setup

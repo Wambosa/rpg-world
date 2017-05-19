@@ -1,3 +1,8 @@
+/*
+This file will not be used for now.
+Leaving this file here as a reference for creating plugins.
+*/
+
 Phaser.Plugin.TouchControls = function(game, parent) {
     Phaser.Plugin.call(this, game, parent);
     

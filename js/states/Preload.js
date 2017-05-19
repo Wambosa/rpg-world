@@ -19,20 +19,40 @@ RPG.PreloadState = {
     this.load.image('shield', 'assets/images/shield.png');
     this.load.image('scroll', 'assets/images/scroll-skull.png');
     this.load.image('strangeItem', 'assets/images/gods-helmet.png');
+    this.load.image('arrow', 'assets/images/arrow.png');
 
     this.load.image('monster', 'assets/images/demon.png');
     this.load.image('dragon', 'assets/images/goldendragon.png');
     this.load.image('snake', 'assets/images/snake.png');
     this.load.image('skeleton', 'assets/images/swordskeleton.png');
 
-    this.load.image('sword', 'assets/images/attack-icon.png')
+    this.load.image('sword', 'assets/images/attack-icon.png');
     this.load.spritesheet('player', 'assets/images/player.png', 30, 30, 2, 0, 2);
     this.load.image('tilesheet', 'assets/images/terrains.png');  
 
     //load game data
-    this.load.tilemap('map1', 'assets/levels/world1.json', null, Phaser.Tilemap.TILED_JSON);
+    /*
+    var fileCount = 3;
+    var i;
+    for(i=0; i< fileCount; i++ ){
+      this.load.tilemap('map'+i, 'assets/levels/world' + i + '.json', null, Phaser.Tilemap.TILED_JSON);
+    }
+    */
+    var x = 6;
+    var i;
+    for(i=0; i<x; i++){
+      var y = 6;
+      var j;
+      for(j=0; j<y; j++){
+        this.load.tilemap(i+'-'+j, 'assets/levels/' + i + '-' + j + '.json', null, Phaser.Tilemap.TILED_JSON);
+      }
+    }
+    
   },
   create: function() {
-    this.state.start('Game');
+    this.start();
+  },
+  start: function(){
+    this.state.start('Game', 'map1');
   }
 };
