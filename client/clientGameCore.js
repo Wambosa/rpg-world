@@ -1,9 +1,46 @@
 
-
+/**
+ * This is meant to run on a client web browser, currently it is performing canvas draws directly.
+ * in the near future, this will be converted to run with phaserJs instead
+ * ClientGameCore
+ * @implements {GameCore}
+ * @property {Object} players - a poorly designed dictionary or Player references. needs refactor
+ * @property {Object} ghosts - dictionary. debug visual aid. represents the server location of the two players. it is unclear why there are three ghosts with only two players
+ * @property {THREEx.KeyboardState} keyboard - 3rd party input management object
+ * @property {Object?} serverUpdates - A list of recent server updates we interpolate across. This is the buffer that is the driving factor for our networking
+ * 
+ * @property {boolean} showHelp - Whether or not to draw the help text
+ * @property {boolean} naiveApproach - Whether or not to use the naive approach
+ * @property {boolean} showServerPos - Whether or not to show the server position
+ * @property {boolean} showDestPos - Whether or not to show the interpolation goal
+ * @property {boolean} clientPredict - Whether or not the client is predicting input
+ * @property {int} inputSeq - When predicting client inputs, we store the last input as a sequence number
+ * @property {boolean} clientSmoothing - Whether or not the client side prediction tries to smooth things out
+ * @property {int} clientSmooth - amount of smoothing to apply to client update dest
+ * @property {float} netLatency - the latency between the client and the server (ping/2)
+ * @property {float} netPing - The round trip time from here to the server,and back
+ * @property {float} lastPingTime - The time we last sent a ping
+ * @property {float} fakeLag - If we are simulating lag, this applies only to the input client (not others)
+ * @property {float} fakeLagTime - 
+ * @property {float} netOffset - latency between server and client interpolation for other clients
+ * @property {int} bufferSize - The size of the server history to keep for rewinding/interpolating.
+ * @property {float} targetTime - the time where we want to be in the server timeline
+ * @property {float} oldestTick - the last time tick we have available in the buffer
+ * @property {float} clientTime - Our local 'clock' based on server time - client interpolation(netOffset).
+ * @property {float} serverTime - The time the server reported it was at, last we heard from it
+ * @property {float} dt - The time that the last frame took to run
+ * @property {int} fps - The current instantaneous fps (1/this.dt)
+ * @property {int} fpsAvgCount - The number of samples we have taken for fpsAvg
+ * @property {int} fpsAvg - The current average fps displayed in the debug UI
+ * @property {int} fpsAvgAcc - The accumulation of the last avgcount fps samples
+ * 
+ * @property {socketio.connection} socket - local reference to our connection to the server
+ * @summary the clientSide game loop
+ */
 class ClientGameCore extends GameCore {
 	
 	
-	constructor(params){
+	constructor(params) {
 		super(params);
 		
 		let vendors = [ 'ms', 'moz', 'webkit', 'o' ];
@@ -18,8 +55,6 @@ class ClientGameCore extends GameCore {
 			other : new Player({gameInstance: this})
 		};
 
-
-		//Debugging ghosts, to help visualise things
 		this.ghosts = {
 			//Our ghost position on the server
 			serverPosSelf : new Player({gameInstance: this}),
@@ -28,145 +63,190 @@ class ClientGameCore extends GameCore {
 			//The other players ghost destination position (the lerp)
 			posOther : new Player({gameInstance: this})
 		};
-
 		this.ghosts.posOther.state = 'destPos';
-
 		this.ghosts.posOther.infoColor = 'rgba(255,255,255,0.1)';
-
 		this.ghosts.serverPosSelf.infoColor = 'rgba(255,255,255,0.2)';
 		this.ghosts.serverPosOther.infoColor = 'rgba(255,255,255,0.2)';
-
 		this.ghosts.serverPosSelf.state = 'serverPos';
 		this.ghosts.serverPosOther.state = 'serverPos';
-
 		this.ghosts.serverPosSelf.pos = { x:20, y:20 };
 		this.ghosts.posOther.pos = { x:500, y:200 };
 		this.ghosts.serverPosOther.pos = { x:500, y:200 };
 		
-		//Create a keyboard handler
 		this.keyboard = new THREEx.KeyboardState();
 
-		//Create the default configuration settings
-		this.clientCreateConfiguration();
+		this.showHelp = false;
+		this.naiveApproach = false;
+		this.showServerPos = false;
+		this.showDestPos = false;
+		this.clientPredict = true;
+		this.inputSeq = 0;
+		this.clientSmoothing = true;
+		this.clientSmooth = 25;
+	
+		this.netLatency = 0.001;
+		this.netPing = 0.001;
+		this.lastPingTime = 0.001;
+		this.fakeLag = 0;
+		this.fakeLagTime = 0;
+	
+		this.netOffset = 100;
+		this.bufferSize = 2;
+		this.targetTime = 0.01;
+		this.oldestTick = 0.01;
+	
+		this.clientTime = 0.01;
+		this.serverTime = 0.01;
+		
+		this.dt = 0.016;
+		this.fps = 0;
+		this.fpsAvgCount = 0;
+		this.fpsAvg = 0;
+		this.fpsAvgAcc = 0;
 
-		//A list of recent server updates we interpolate across
-		//This is the buffer that is the driving factor for our networking
 		this.serverUpdates = [];
 
-		//Connect to the socket.io server!
-		this.clientConnectToServer();
+		//note: Connect to the socket.io server!
+		this.socket = this.connectToServer();
 
-		//We start pinging the server to determine latency
-		this.clientCreatePingTimer();
+		this.createPingTimer();
 
-		//Set their colors from the storage or locally
+		//note: Set their colors from the storage or locally
 		this.color = localStorage.getItem('color') || '#cc8822' ;
 		localStorage.setItem('color', this.color);
 		this.players.self.color = this.color;
 
-		this.clientCreateDebugGui();
+		this.createDebugGui();
 		
-		this.createPhysicsSimulation(this.clientUpdatePhysics.bind(this));
+		this.createPhysicsSimulation(this.updatePhysics.bind(this));
 	}
 	
 	update(t){
 		super.update(t);
 		
-		this.clientUpdate();
+		//note: phaserjs takes care of this (Clear the screen area)
+		this.ctx.clearRect(0,0,720,480);
+	
+		//note: can hide the help with the debug GUI
+		if(this.showHelp)
+			this.drawHelp();
+	
+		//Capture inputs from the player
+		this.handleInput();
+	
+		//Network player just gets drawn normally, with interpolation from
+		//the server updates, smoothing out the positions from the past.
+		//Note that if we don't have prediction enabled - this will also
+		//update the actual local client position on screen as well.
+		if(!this.naiveApproach)
+			this.processNetUpdates();
+	
+		//Now they should have updated, we can draw the entity
+		this.players.other.draw();
+	
+		//When we are doing client side prediction, we smooth out our position
+		//across frames using local input states we have stored.
+		this.updateLocalPosition();
+	
+		//And then we finally draw
+		this.players.self.draw();
+	
+			//and these
+		if(this.showDestPos && !this.naiveApproach)
+			this.ghosts.posOther.draw();
+	
+			//and lastly draw these
+		if(this.showServerPos && !this.naiveApproach) {
+			this.ghosts.serverPosSelf.draw();
+			this.ghosts.serverPosOther.draw();
+		}
+	
+		//Work out the fps average
+		this.refreshFps();
 	
 		this.postUpdate();
 	}
-		
 
-	/*
+	/**
+	 * This takes input from the client and keeps a record,
+	 * It also sends the input information to the server immediately
+	 * as it is pressed. It also tags each input with a sequence number
+	 * handleInput
+	 * @returns {{x: Number, y: Number}} - a vector
+	 */
+	handleInput() {
+
+		let xDir = 0;
+		let yDir = 0;
+		let input = [];
+		this.clientHasInput = false;
 	
-		Client side functions
-		These functions below are specific to the client side only,
-		and usually start with client_* to make things clearer.
-	*/
-
-	clientHandleInput(){
-
-	//if(this.lit > this.localTime) return;
-	//this.lit = this.localTime+0.5; //one second delay
-
-		//This takes input from the client and keeps a record,
-		//It also sends the input information to the server immediately
-		//as it is pressed. It also tags each input with a sequence number.
-
-	var xDir = 0;
-	var yDir = 0;
-	var input = [];
-	this.clientHasInput = false;
-
-	if( this.keyboard.pressed('A') ||
-		this.keyboard.pressed('left')) {
-
-			xDir = -1;
-			input.push('l');
-
-		} //left
-
-	if( this.keyboard.pressed('D') ||
-		this.keyboard.pressed('right')) {
-
-			xDir = 1;
-			input.push('r');
-
-		} //right
-
-	if( this.keyboard.pressed('S') ||
-		this.keyboard.pressed('down')) {
-
-			yDir = 1;
-			input.push('d');
-
-		} //down
-
-	if( this.keyboard.pressed('W') ||
-		this.keyboard.pressed('up')) {
-
-			yDir = -1;
-			input.push('u');
-
-		} //up
-
-	if(input.length) {
-
+		if( this.keyboard.pressed('A') ||
+			this.keyboard.pressed('left')) {
+	
+				xDir = -1;
+				input.push('l');
+			}
+	
+		if( this.keyboard.pressed('D') ||
+			this.keyboard.pressed('right')) {
+	
+				xDir = 1;
+				input.push('r');
+			}
+	
+		if( this.keyboard.pressed('S') ||
+			this.keyboard.pressed('down')) {
+	
+				yDir = 1;
+				input.push('d');
+			}
+	
+		if( this.keyboard.pressed('W') ||
+			this.keyboard.pressed('up')) {
+	
+				yDir = -1;
+				input.push('u');
+			}
+	
+		if(input.length) {
+			
 			//Update what sequence we are on now
-		this.inputSeq += 1;
-
+			this.inputSeq += 1;
+			
 			//Store the input state as a snapshot of what happened.
-		this.players.self.inputs.push({
-			inputs : input,
-			time : Util.trimFloat(this.localTime),
-			seq : this.inputSeq
-		});
-
+			this.players.self.inputs.push({
+				inputs : input,
+				time : Util.trimFloat(this.localTime),
+				seq : this.inputSeq
+			});
+			
 			//Send the packet of information to the server.
 			//The input packets are labelled with an 'i' in front.
-		var serverPacket = 'i.';
-			serverPacket += input.join('-') + '.';
-			serverPacket += this.localTime.toFixed(3).replace('.','-') + '.';
-			serverPacket += this.inputSeq;
-
-			//Go
-		this.socket.send(  serverPacket  );
-
+			let serverPacket = new ServerPacket({
+				type: 'i',
+				input: input,
+				timestamp: this.localTime,
+				sequenceId: this.inputSeq
+			});
+			
+			this.socket.send(serverPacket.toDataTransferObject());
+	
 			//Return the direction if needed
-		return this.physicsMovementVectorFromDirection( xDir, yDir );
-
-	} else {
-
-		return {x:0,y:0};
-
+			return this.physicsMovementVectorFromDirection(xDir, yDir);
+	
+		} else {
+	
+			return {
+				x: 0,
+				y: 0
+			};
+		}
 	}
 
-};
-
-	clientProcessNetPredictionCorrection() {
+	processNetPredictionCorrection() {
 	
-			//No updates...
+		//No updates...
 		if(!this.serverUpdates.length) return;
 	
 			//The most recent server update
@@ -193,7 +273,7 @@ class ClientGameCore extends GameCore {
 					}
 				}
 	
-					//Now we can crop the list of any updates we have already processed
+				//Now we can crop the list of any updates we have already processed
 				if(lastinputseqIndex != -1) {
 					//so we have now gotten an acknowledgement from the server that our inputs here have been accepted
 					//and that we can predict from this known position instead
@@ -204,37 +284,39 @@ class ClientGameCore extends GameCore {
 						//The player is now located at the new server position, authoritive server
 					this.players.self.curState.pos = this.pos(myServerPos);
 					this.players.self.lastInputSeq = lastinputseqIndex;
-						//Now we reapply all the inputs that we have locally that
-						//the server hasn't yet confirmed. This will 'keep' our position the same,
-						//but also confirm the server position at the same time.
-					this.clientUpdatePhysics();
-					this.clientUpdateLocalPosition();
+					
+					//Now we reapply all the inputs that we have locally that
+					//the server hasn't yet confirmed. This will 'keep' our position the same,
+					//but also confirm the server position at the same time.
+					this.updatePhysics();
+					this.updateLocalPosition();
 	
 				} // if(lastinputseqIndex != -1)
 			} //if myLastInputOnServer
 	
-	};
+	}
 	
-	clientProcessNetUpdates() {
+	processNetUpdates() {
 	
-			//No updates...
-		if(!this.serverUpdates.length) return;
+		//No updates...
+		if(!this.serverUpdates.length)
+			return;
 	
 		//First : Find the position in the updates, on the timeline
 		//We call this currentTime, then we find the pastPos and the targetPos using this,
 		//searching throught the serverUpdates array for currentTime in between 2 other times.
 		// Then :  other player position = lerp ( pastPos, targetPos, currentTime );
 	
-			//Find the position in the timeline of updates we stored.
+		//Find the position in the timeline of updates we stored.
 		var currentTime = this.clientTime;
 		var count = this.serverUpdates.length-1;
 		var target = null;
 		var previous = null;
 	
-			//We look from the 'oldest' updates, since the newest ones
-			//are at the end (list.length-1 for example). This will be expensive
-			//only when our time is not found on the timeline, since it will run all
-			//samples. Usually this iterates very little before breaking out with a target.
+		//We look from the 'oldest' updates, since the newest ones
+		//are at the end (list.length-1 for example). This will be expensive
+		//only when our time is not found on the timeline, since it will run all
+		//samples. Usually this iterates very little before breaking out with a target.
 		for(var i = 0; i < count; ++i) {
 	
 			var point = this.serverUpdates[i];
@@ -248,8 +330,8 @@ class ClientGameCore extends GameCore {
 			}
 		}
 	
-			//With no target we store the last known
-			//server position and move to that instead
+		//With no target we store the last known
+		//server position and move to that instead
 		if(!target) {
 			target = this.serverUpdates[0];
 			previous = this.serverUpdates[0];
@@ -319,69 +401,73 @@ class ClientGameCore extends GameCore {
 				}
 			}
 	
-		} //if target && previous
+		}
 	
-	};
+	}
 	
-	clientOnserverupdateRecieved(data){
+	/**
+	 * One approach (naiveApproach) is to set the position directly as the server tells you.
+	 * This is a common mistake and causes somewhat playable results on a local LAN, for example,
+	 * but causes terrible lag when any ping/latency is introduced. The player can not deduce any
+	 * information to interpolate with so it misses positions, and packet loss destroys this approach
+	 * even more so. See 'the bouncing ball problem' on Wikipedia.
+	 * 
+	 * Lets clarify the information we have locally. One of the players is 'hosting' and
+	 * the other is a joined in client, so we name these host and client to ensure
+	 * the positions we get from the server are mapped onto the correct local sprites
+	 * 
+	 * onServerUpdateRecieved
+	 * @returns {undefined}
+	 */
+	onServerUpdateRecieved(data) {
 	
-				//Lets clarify the information we have locally. One of the players is 'hosting' and
-				//the other is a joined in client, so we name these host and client for making sure
-				//the positions we get from the server are mapped onto the correct local sprites
-			var playerHost = this.players.self.host ?  this.players.self : this.players.other;
-			var playerClient = this.players.self.host ?  this.players.other : this.players.self;
-			var thisPlayer = this.players.self;
-			
-				//Store the server time (this is offset by the latency in the network, by the time we get it)
-			this.serverTime = data.t;
-				//Update our local offset time from the last server update
-			this.clientTime = this.serverTime - (this.netOffset/1000);
+		//todo: this needs to be a dict lookup
+		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
+		var playerClient = this.players.self.host ?  this.players.other : this.players.self;
+		var thisPlayer = this.players.self;
+		
+		//Store the server time (this is offset by the latency in the network, by the time we get it)
+		this.serverTime = data.t;
+		
+		//Update our local offset time from the last server update
+		this.clientTime = this.serverTime - (this.netOffset/1000);
+
+		if(this.naiveApproach) {
+
+			if(data.hp) {
+				playerHost.pos = this.pos(data.hp);
+			}
+
+			if(data.cp) {
+				playerClient.pos = this.pos(data.cp);
+			}
+
+		} else {
+
+			//Cache the data from the server,
+			//and then play the timeline
+			//back to the player with a small delay (netOffset), allowing
+			//interpolation between the points.
+			this.serverUpdates.push(data);
+
+			//we limit the buffer in seconds worth of updates
+			//60fps*buffer seconds = number of samples
+			if(this.serverUpdates.length >= ( 60*this.bufferSize ))
+				this.serverUpdates.splice(0,1);
+
+			//We can see when the last tick we know of happened.
+			//If clientTime gets behind this due to latency, a snap occurs
+			//to the last tick. Unavoidable, and a reallly bad connection here.
+			//If that happens it might be best to drop the game after a period of time.
+			this.oldestTick = this.serverUpdates[0].t;
+
+			//Handle the latest positions from the server
+			//and make sure to correct our local predictions, making the server have final say.
+			this.processNetPredictionCorrection();
+		}
+	}
 	
-				//One approach is to set the position directly as the server tells you.
-				//This is a common mistake and causes somewhat playable results on a local LAN, for example,
-				//but causes terrible lag when any ping/latency is introduced. The player can not deduce any
-				//information to interpolate with so it misses positions, and packet loss destroys this approach
-				//even more so. See 'the bouncing ball problem' on Wikipedia.
-	
-			if(this.naiveApproach) {
-	
-				if(data.hp) {
-					playerHost.pos = this.pos(data.hp);
-				}
-	
-				if(data.cp) {
-					playerClient.pos = this.pos(data.cp);
-				}
-	
-			} else {
-	
-					//Cache the data from the server,
-					//and then play the timeline
-					//back to the player with a small delay (netOffset), allowing
-					//interpolation between the points.
-				this.serverUpdates.push(data);
-	
-					//we limit the buffer in seconds worth of updates
-					//60fps*buffer seconds = number of samples
-				if(this.serverUpdates.length >= ( 60*this.bufferSize )) {
-					this.serverUpdates.splice(0,1);
-				}
-	
-					//We can see when the last tick we know of happened.
-					//If clientTime gets behind this due to latency, a snap occurs
-					//to the last tick. Unavoidable, and a reallly bad connection here.
-					//If that happens it might be best to drop the game after a period of time.
-				this.oldestTick = this.serverUpdates[0].t;
-	
-					//Handle the latest positions from the server
-					//and make sure to correct our local predictions, making the server have final say.
-				this.clientProcessNetPredictionCorrection();
-				
-			} //non naive
-	
-	};
-	
-	clientUpdateLocalPosition(){
+	updateLocalPosition(){
 	
 	 if(this.clientPredict) {
 	
@@ -401,118 +487,53 @@ class ClientGameCore extends GameCore {
 	
 		}  //if(this.clientPredict)
 	
-	};
-	
-	clientUpdatePhysics() {
-	
-			//Fetch the new direction from the input buffer,
-			//and apply it to the state so we can smooth it in the visual state
+	}
+
+	/**
+	 * a second loop (not to be confused with this.update), that only handles any movement logic and rules
+	 * it will be critical to ensure that animation code is not mixed with the movement code
+	 * Fetch the new direction from the input buffer,
+	 * and apply it to the state so we can smooth it in the visual state
+	 * updatePhysics
+	 * @returns {undefined}
+	 * @summary apply movement and collisions only
+	 */
+	updatePhysics() {
 	
 		if(this.clientPredict) {
-	
 			this.players.self.oldState.pos = this.pos( this.players.self.curState.pos );
-			var nd = this.processInput(this.players.self);
+			let nd = this.processInput(this.players.self);
 			this.players.self.curState.pos = this.vAdd( this.players.self.oldState.pos, nd);
 			this.players.self.stateTime = this.localTime;
-	
 		}
+	}
 	
-	};
-	
-	clientUpdate() {
-	
-		//note: phaserjs takes care of this (Clear the screen area)
-		this.ctx.clearRect(0,0,720,480);
-	
-		//note: can hide the help with the debug GUI
-		if(this.showHelp)
-			this.clientDrawHelp();
-	
-		//Capture inputs from the player
-		this.clientHandleInput();
-	
-		//Network player just gets drawn normally, with interpolation from
-		//the server updates, smoothing out the positions from the past.
-		//Note that if we don't have prediction enabled - this will also
-		//update the actual local client position on screen as well.
-		if(!this.naiveApproach)
-			this.clientProcessNetUpdates();
-	
-		//Now they should have updated, we can draw the entity
-		this.players.other.draw();
-	
-		//When we are doing client side prediction, we smooth out our position
-		//across frames using local input states we have stored.
-		this.clientUpdateLocalPosition();
-	
-		//And then we finally draw
-		this.players.self.draw();
-	
-			//and these
-		if(this.showDestPos && !this.naiveApproach)
-			this.ghosts.posOther.draw();
-	
-			//and lastly draw these
-		if(this.showServerPos && !this.naiveApproach) {
-			this.ghosts.serverPosSelf.draw();
-			this.ghosts.serverPosOther.draw();
-		}
-	
-		//Work out the fps average
-		this.clientRefreshFps();
-	
-	};
-	
-	clientCreatePingTimer() {
-	
-		//Set a ping timer to 1 second, to maintain the ping/latency between
-		//client and server and calculated roughly how our connection is doing
+	/**
+	 * Set a ping timer to 1 second, to maintain the ping/latency between
+	 * client and server and calculated roughly how our connection is doing
+	 * createPingTimer
+	 * @returns {undefined}
+	 * @summary We start pinging the server to determine latency
+	 */
+	createPingTimer() {
 	
 		setInterval(function(){
-	
+		
 			this.lastPingTime = Util.epoch() - this.fakeLag;
 			this.socket.send('p.' + (this.lastPingTime) );
-	
-		}.bind(this), 1000);
-	};
-	
-	clientCreateConfiguration() {
-	
-		this.showHelp = false;             //Whether or not to draw the help text
-		this.naiveApproach = false;        //Whether or not to use the naive approach
-		this.showServerPos = false;       //Whether or not to show the server position
-		this.showDestPos = false;         //Whether or not to show the interpolation goal
-		this.clientPredict = true;         //Whether or not the client is predicting input
-		this.inputSeq = 0;                 //When predicting client inputs, we store the last input as a sequence number
-		this.clientSmoothing = true;       //Whether or not the client side prediction tries to smooth things out
-		this.clientSmooth = 25;            //amount of smoothing to apply to client update dest
-	
-		this.netLatency = 0.001;           //the latency between the client and the server (ping/2)
-		this.netPing = 0.001;              //The round trip time from here to the server,and back
-		this.lastPingTime = 0.001;        //The time we last sent a ping
-		this.fakeLag = 0;                //If we are simulating lag, this applies only to the input client (not others)
-		this.fakeLagTime = 0;
-	
-		this.netOffset = 100;              //100 ms latency between server and client interpolation for other clients
-		this.bufferSize = 2;               //The size of the server history to keep for rewinding/interpolating.
-		this.targetTime = 0.01;            //the time where we want to be in the server timeline
-		this.oldestTick = 0.01;            //the last time tick we have available in the buffer
-	
-		this.clientTime = 0.01;            //Our local 'clock' based on server time - client interpolation(netOffset).
-		this.serverTime = 0.01;            //The time the server reported it was at, last we heard from it
 		
-		this.dt = 0.016;                    //The time that the last frame took to run
-		this.fps = 0;                       //The current instantaneous fps (1/this.dt)
-		this.fpsAvgCount = 0;             //The number of samples we have taken for fpsAvg
-		this.fpsAvg = 0;                   //The current average fps displayed in the debug UI
-		this.fpsAvgAcc = 0;               //The accumulation of the last avgcount fps samples
-	
-		this.lit = 0;
-		this.llt = Util.epoch();
-	
-	};
-	
-	clientCreateDebugGui() {
+		}.bind(this), 1000);
+	}
+
+	/**
+	 * while developing this game, we need a quick way to debug and adjust the game mid flight
+	 * the desire is to keep live testing cycles very short. this method creates the entire interface
+	 * and enables the interaction required to achieve the aformentioned goal.
+	 * createDebugGui
+	 * @returns {undefined}
+	 * @summary instantiates a gat.GUI instance with adjustable parameters
+	 */
+	createDebugGui() {
 	
 		this.gui = new dat.GUI();
 	
@@ -520,8 +541,8 @@ class ClientGameCore extends GameCore {
 	
 			this.colorcontrol = _playersettings.addColor(this, 'color');
 	
-				//We want to know when we change our color so we can tell
-				//the server to tell the other clients for us
+			//We want to know when we change our color so we can tell
+			//the server to tell the other clients for us
 			this.colorcontrol.onChange(function(value) {
 				this.players.self.color = value;
 				localStorage.setItem('color', value);
@@ -567,10 +588,9 @@ class ClientGameCore extends GameCore {
 			//_netsettings.add(this, 'oldestTick').step(0.001).listen();
 	
 			_netsettings.open();
+	}
 	
-	};
-	
-	clientResetPositions() {
+	resetPositions() {
 	
 		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
 		var playerClient = this.players.self.host ?  this.players.other : this.players.self;
@@ -590,9 +610,9 @@ class ClientGameCore extends GameCore {
 		this.ghosts.serverPosOther.pos = this.pos(this.players.other.pos);
 		this.ghosts.posOther.pos = this.pos(this.players.other.pos);
 	
-	};
+	}
 	
-	clientOnreadygame(data) {
+	onReadyGame(data) {
 	
 		var serverTime = parseFloat(data.replace('-','.'));
 	
@@ -616,9 +636,9 @@ class ClientGameCore extends GameCore {
 			//Make sure colors are synced up
 		 this.socket.send('c.' + this.players.self.color);
 	
-	};
+	}
 	
-	clientOnjoingame(data) {
+	onJoinGame(data) {
 	
 			//We are not the host
 		this.players.self.host = false;
@@ -627,11 +647,11 @@ class ClientGameCore extends GameCore {
 		this.players.self.infoColor = '#00bb00';
 	
 			//Make sure the positions match servers and other clients
-		this.clientResetPositions();
+		this.resetPositions();
 	
-	};
+	}
 	
-	clientOnhostgame(data) {
+	onHostGame(data) {
 	
 			//The server sends the time when asking us to host, but it should be a new game.
 			//so the value will be really small anyway (15 or 16ms)
@@ -648,74 +668,90 @@ class ClientGameCore extends GameCore {
 		this.players.self.infoColor = '#cc0000';
 	
 			//Make sure we start in the correct place as the host.
-		this.clientResetPositions();
+		this.resetPositions();
 	
-	};
+	}
 	
-	clientOnconnected(data) {
-	
-		//The server responded that we are now in a game,
-		//this lets us store the information about ourselves and set the colors
-		//to show we are now ready to be playing.
+	/**
+	 * The server responded that we are now in a game,
+	 * this lets us store the information about ourselves and set the colors
+	 * to show we are now ready to be playing.
+	 * onConnected
+	 * @returns {undefined}
+	 * @summary the server sends us back our identity in the serverside game
+	 */
+	onConnected(data) {
 		this.players.self.id = data.id;
 		this.players.self.infoColor = '#cc0000';
 		this.players.self.state = 'connected';
 		this.players.self.online = true;
+	}
 	
-	};
-	
-	clientOnOtherclientcolorchange(data) {
+	onOtherClientColorChange(data) {
 	
 		this.players.other.color = data;
-	};
+	}
 	
-	clientOnping(data) {
+	onPing(data) {
 	
 		this.netPing = Util.epoch() - parseFloat( data );
 		this.netLatency = this.netPing/2;
-	};
+	}
 	
-	clientOnnetmessage(data) {
+	/**
+	 * the handler for messages in the stream.
+	 * messages will fork here after being parsed out of compact form
+	 * onNetMessage
+	 * @returns {undefined}
+	 * @summary handler for message event.
+	 */
+	onNetMessage(data) {
+	
+		//todo: use a kind of WebSocketMessage
 	
 		var commands = data.split('.');
 		var command = commands[0];
 		var subcommand = commands[1] || null;
 		var commanddata = commands[2] || null;
 	
+		//todo: WWWHHHHHHHYYYY!!!!!!!!??????
 		switch(command) {
 			case 's': //server message
 	
 				switch(subcommand) {
 	
 					case 'h' : //host a game requested
-						this.clientOnhostgame(commanddata); break;
+						this.onHostGame(commanddata); break;
 	
 					case 'j' : //join a game requested
-						this.clientOnjoingame(commanddata); break;
+						this.onJoinGame(commanddata); break;
 	
 					case 'r' : //ready a game requested
-						this.clientOnreadygame(commanddata); break;
+						this.onReadyGame(commanddata); break;
 	
 					case 'e' : //end game requested
-						this.clientOndisconnect(commanddata); break;
+						this.onDisconnect(commanddata); break;
 	
 					case 'p' : //server ping
-						this.clientOnping(commanddata); break;
+						this.onPing(commanddata); break;
 	
 					case 'c' : //other player changed colors
-						this.clientOnOtherclientcolorchange(commanddata); break;
+						this.onOtherClientColorChange(commanddata); break;
+
+				}
 	
-				} //subcommand
+			break;
+		}
+	}
 	
-			break; //'s'
-		} //command
-					
-	};
-	
-	clientOndisconnect(data) {
-		
-			//When we disconnect, we don't know if the other player is
-			//connected or not, and since we aren't, everything goes to offline
+	/**
+	 * When we disconnect, we don't know if the other player is
+	 * connected or not, and since we aren't, everything goes to offline
+	 * 
+	 * onDisconnect
+	 * @returns {undefined}
+	 */
+	onDisconnect(data) {
 	
 		this.players.self.infoColor = 'rgba(255,255,255,0.1)';
 		this.players.self.state = 'not-connected';
@@ -723,34 +759,42 @@ class ClientGameCore extends GameCore {
 	
 		this.players.other.infoColor = 'rgba(255,255,255,0.1)';
 		this.players.other.state = 'not-connected';
+	}
 	
-	};
+	/**
+	 * When we connect, we are in a multiplayer game until we have a server id
+	 * and are placed in a game by the server. The server sends us a message/event for that called 'connect'.
+	 * 
+	 * connectToServer
+	 * @returns {socketio.connection}
+	 */
+	connectToServer() {
+		
+		let socket = io.connect();
+
+		socket.on('connect', function(){
+			this.players.self.state = 'connecting';
+		}.bind(this));
+
+		//Sent when we are disconnected (network, server down, etc)
+		socket.on('disconnect', this.onDisconnect.bind(this));
+		
+		//Sent each tick of the server simulation. This is our authoritive update
+		socket.on('onserverupdate', this.onServerUpdateRecieved.bind(this));
+		
+		//Handle when we connect to the server, showing state and storing id's.
+		socket.on('onconnected', this.onConnected.bind(this));
+		
+		//On error we just show that we are not connected for now. Can print the data.
+		socket.on('error', this.onDisconnect.bind(this));
+		
+		//On message from the server, we parse the commands and send it to the handlers
+		socket.on('message', this.onNetMessage.bind(this));
+		
+		return socket;
+	}
 	
-	clientConnectToServer() {
-			
-				//Store a local reference to our connection to the server
-			this.socket = io.connect();
-	
-				//When we connect, we are not 'connected' until we have a server id
-				//and are placed in a game by the server. The server sends us a message for that.
-			this.socket.on('connect', function(){
-				this.players.self.state = 'connecting';
-			}.bind(this));
-	
-				//Sent when we are disconnected (network, server down, etc)
-			this.socket.on('disconnect', this.clientOndisconnect.bind(this));
-				//Sent each tick of the server simulation. This is our authoritive update
-			this.socket.on('onserverupdate', this.clientOnserverupdateRecieved.bind(this));
-				//Handle when we connect to the server, showing state and storing id's.
-			this.socket.on('onconnected', this.clientOnconnected.bind(this));
-				//On error we just show that we are not connected for now. Can print the data.
-			this.socket.on('error', this.clientOndisconnect.bind(this));
-				//On message from the server, we parse the commands and send it to the handlers
-			this.socket.on('message', this.clientOnnetmessage.bind(this));
-	
-	};
-	
-	clientRefreshFps() {
+	refreshFps() {
 	
 		//note: We store the fps for 10 frames, by adding it to this accumulator
 		this.fps = 1/this.dt;
@@ -764,11 +808,11 @@ class ClientGameCore extends GameCore {
 			this.fpsAvgCount = 1;
 			this.fpsAvgAcc = this.fps;
 	
-		} //reached 10 frames
+		}
 	
-	};
+	}
 	
-	clientDrawHelp() {
+	drawHelp() {
 	
 		//note: un-distracting fade
 		this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -791,6 +835,6 @@ class ClientGameCore extends GameCore {
 		//Reset the style back to full white.
 		this.ctx.fillStyle = 'rgba(255,255,255,1)';
 	
-	};
+	}
 
 }

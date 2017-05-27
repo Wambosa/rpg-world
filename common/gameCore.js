@@ -83,7 +83,6 @@ class GameCore {
 		//Fixed point helps be more deterministic
 		item.pos.x = Util.trimFloat(item.pos.x, 4);
 		item.pos.y = Util.trimFloat(item.pos.y, 4);
-		
 	}
 
 	processInput( player ) {
@@ -192,7 +191,7 @@ class GameCore {
 	vLerp(v, tv, t) {
 		return {
 			x: this.lerp(v.x, tv.x, t),
-			y:this.lerp(v.y, tv.y, t) 
+			y: this.lerp(v.y, tv.y, t)
 		}; 
 	}
 }
