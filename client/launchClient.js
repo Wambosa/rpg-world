@@ -1,12 +1,11 @@
 "use strict";
 
+
 var game = {};
 
-//When loading, we store references to our
-//drawing canvases, and initiate a game instance
+
 window.onload = function() {
 
-	//note: game client instance (phaserjs later)
 	game = new ClientGameCore();
 
 	game.viewport = document.getElementById('game-canvas');
@@ -17,7 +16,7 @@ window.onload = function() {
 	game.ctx = game.viewport.getContext('2d');
 	
 	game.ctx.font = '11px "Helvetica"';
-
-	//note: start update loop
-	game.update( new Date().getTime() );
+	
+	// note: calling this once. it will call itself henceforth
+	game.update(Util.epoch());
 };

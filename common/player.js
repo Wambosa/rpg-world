@@ -1,5 +1,7 @@
 "use strict";
 
+require('./util');
+
 /**
  * The player class
  * A simple class to maintain state of a player on screen,
@@ -32,7 +34,7 @@ class Player {
 		//These are used in moving us around later
 		this.oldState = { pos: { x: 0, y: 0} };
 		this.curState = { pos: { x: 0, y: 0} };
-		this.stateTime = new Date().getTime();
+		this.stateTime = Util.epoch();
 	
 		//Our local history of inputs
 		this.inputs = [];

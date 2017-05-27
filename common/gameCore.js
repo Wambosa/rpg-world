@@ -1,4 +1,4 @@
-
+Util = require('./util');
 
 class GameCore {
 
@@ -14,11 +14,11 @@ class GameCore {
 
 		//Set up some physics integration values
 		this._pdt = 0.0001;                 //The physics update delta time
-		this._pdte = new Date().getTime();  //The physics update last delta time
+		this._pdte = Util.epoch();  //The physics update last delta time
 		//A local timer for precision on server and client
 		this.localTime = 0.016;            //The local timer
-		this._dt = new Date().getTime();    //The local timer delta
-		this._dte = new Date().getTime();   //The local timer last frame time
+		this._dt = Util.epoch();    //The local timer delta
+		this._dte = Util.epoch();   //The local timer last frame time
 
 		//Start a physics loop, this is separate to the rendering
 		//as this happens at a fixed frequency
@@ -35,9 +35,6 @@ class GameCore {
 	
 		//Store the last frame time
 		this.lastframetime = t;
-	
-		if(this.server)
-			this.serverUpdate();
 	}
 	
 	postUpdate(){
@@ -47,16 +44,16 @@ class GameCore {
 
 	createTimer(){
 		setInterval(function(){
-			this._dt = new Date().getTime() - this._dte;
-			this._dte = new Date().getTime();
+			this._dt = Util.epoch() - this._dte;
+			this._dte = Util.epoch();
 			this.localTime += this._dt/1000.0;
 		}.bind(this), 4);
 	}
 	
 	createPhysicsSimulation(physicsFunc) {
 		setInterval(function(){
-			this._pdt = (new Date().getTime() - this._pdte)/1000.0;
-			this._pdte = new Date().getTime();
+			this._pdt = (Util.epoch() - this._pdte)/1000.0;
+			this._pdte = Util.epoch();
 			physicsFunc();
 		}.bind(this), 15);
 	}

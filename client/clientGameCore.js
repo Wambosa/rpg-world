@@ -470,7 +470,7 @@ class ClientGameCore extends GameCore {
 	
 		setInterval(function(){
 	
-			this.lastPingTime = new Date().getTime() - this.fakeLag;
+			this.lastPingTime = Util.epoch() - this.fakeLag;
 			this.socket.send('p.' + (this.lastPingTime) );
 	
 		}.bind(this), 1000);
@@ -508,7 +508,7 @@ class ClientGameCore extends GameCore {
 		this.fpsAvgAcc = 0;               //The accumulation of the last avgcount fps samples
 	
 		this.lit = 0;
-		this.llt = new Date().getTime();
+		this.llt = Util.epoch();
 	
 	};
 	
@@ -671,7 +671,7 @@ class ClientGameCore extends GameCore {
 	
 	clientOnping(data) {
 	
-		this.netPing = new Date().getTime() - parseFloat( data );
+		this.netPing = Util.epoch() - parseFloat( data );
 		this.netLatency = this.netPing/2;
 	};
 	
