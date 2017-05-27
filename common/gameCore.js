@@ -5,11 +5,6 @@ Number.prototype.fixed = function(n) { n = n || 3; return parseFloat(this.toFixe
 class GameCore {
 
 	constructor(params){
-		//todo?
-		//this.server = params.isServer
-		
-		//ultimitely, i will have two different update methods with super() so that there need not be this forking logic in the update loop
-
 
 		//Used in collision etc.
 		this.world = {
@@ -29,7 +24,7 @@ class GameCore {
 
 		//Start a physics loop, this is separate to the rendering
 		//as this happens at a fixed frequency
-		this.createPhysicsSimulation();
+		
 
 		//Start a fast paced timer for measuring time easier
 		this.createTimer();
@@ -60,12 +55,11 @@ class GameCore {
 		}.bind(this), 4);
 	}
 	
-	//rename to initPhysicsStep?
-	createPhysicsSimulation(physicsFunc_todo) {
+	createPhysicsSimulation(physicsFunc) {
 		setInterval(function(){
 			this._pdt = (new Date().getTime() - this._pdte)/1000.0;
 			this._pdte = new Date().getTime();
-			this.updatePhysics();
+			physicsFunc();
 		}.bind(this), 15);
 	}
 
@@ -156,17 +150,6 @@ class GameCore {
 			x : (x * (this.playerspeed * 0.015)).fixed(3),
 			y : (y * (this.playerspeed * 0.015)).fixed(3)
 		};
-
-	}
-
-	//this is horrible. pass the method that ought to be called into the createPhysics sim in order to avoid this trash
-	updatePhysics() {
-
-		if(this.server) {
-			this.serverUpdatePhysics();
-		} else {
-			this.clientUpdatePhysics();
-		}
 
 	}
 

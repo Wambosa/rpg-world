@@ -35,6 +35,8 @@ class ServerGameCore extends GameCore {
 		};
 
 		this.players.self.pos = {x:20,y:20};
+		
+		this.createPhysicsSimulation(this.serverUpdatePhysics.bind(this));
 	}
 	
 	update(t){
@@ -75,7 +77,7 @@ class ServerGameCore extends GameCore {
 		p1.inputs = []; //we have used the input buffer, so remove this
 		p2.inputs = []; //we have used the input buffer, so remove this
 	
-	};
+	}
 	
 	//Makes sure things run smoothly and notifies clients of changes
 	//on the server side
@@ -103,7 +105,7 @@ class ServerGameCore extends GameCore {
 			this.players.other.instance.emit( 'onserverupdate', this.laststate );
 		}
 	
-	};
+	}
 	
 	handleServerInput(client, input, inputTime, inputSeq) {
 	
@@ -114,7 +116,7 @@ class ServerGameCore extends GameCore {
 	
 		//Store the input on the player instance for processing in the physics loop
 		player.inputs.push({inputs:input, time:inputTime, seq:inputSeq});
-	};
+	}
 
 }
 

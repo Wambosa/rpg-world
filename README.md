@@ -2,7 +2,7 @@
 _phaserjs movement + lance-gg experiment_
 
 
-# requirements
+## requirements
 - npm (node package manager)
 - node 6.10.0
 	- `node -v` will tell you what version is running
@@ -14,6 +14,7 @@ _phaserjs movement + lance-gg experiment_
 	- this creates a folder called `node_modules` that will contain dependencies for the game server
 	- npm install takes care of putting things in the right place
 - `npm start`
+	- or `node app.js`
 - clients can then connect to `http://your_ipAddress:8081`
 
 

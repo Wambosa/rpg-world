@@ -65,6 +65,8 @@ class ClientGameCore extends GameCore {
 		this.players.self.color = this.color;
 
 		this.clientCreateDebugGui();
+		
+		this.createPhysicsSimulation(this.clientUpdatePhysics.bind(this));
 	}
 	
 	update(t){
