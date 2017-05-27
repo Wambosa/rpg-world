@@ -1,8 +1,21 @@
 # rpg-world
 _phaserjs movement + lance-gg experiment_
 
-### directory changes
-- moved rpg project into the ```client/``` directory
+
+# requirements
+- npm (node package manager)
+- node 6.10.0
+	- `node -v` will tell you what version is running
+
+
+## usage
+- `npm install` 
+	- only have to run _once_
+	- this creates a folder called `node_modules` that will contain dependencies for the game server
+	- npm install takes care of putting things in the right place
+- `npm start`
+- clients can then connect to `http://your_ipAddress:8081`
+
 
 ### lance-gg concepts
 _even though i am not using the lib. it had excellent directory organization_
@@ -16,7 +29,8 @@ _even though i am not using the lib. it had excellent directory organization_
 	- we will only validate position and stats on the server. client will perform its own validation for everything else
 
 
-### code changes
+### changes
+- moved rpg project into the ```client/``` directory
 - removing the portal logic for now. i need to master the gamestate with socket.io before trying multiple scenes
 - blocking the index by renaming it to `index_rpg.html`
 - `client/vendor/` directory will contain 3rd party code and dependencies
