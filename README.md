@@ -1,5 +1,5 @@
 # rpg-world
-_phaserjs movement + lance-gg experiment_
+_phaserjs movement + socket.io experiment_
 
 
 ## requirements

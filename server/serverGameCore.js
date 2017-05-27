@@ -1,8 +1,5 @@
-
 const Player = require('../common/player');
 const GameCore = require('../common/gameCore');
-
-Number.prototype.fixed = function(n) { n = n || 3; return parseFloat(this.toFixed(n)); };
 
 class ServerGameCore extends GameCore {
 	

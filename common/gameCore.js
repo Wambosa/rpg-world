@@ -1,7 +1,5 @@
 
 
-Number.prototype.fixed = function(n) { n = n || 3; return parseFloat(this.toFixed(n)); };
-
 class GameCore {
 
 	constructor(params){
@@ -33,7 +31,7 @@ class GameCore {
 	update(t) {
 		
 		//Work out the delta time
-		this.dt = this.lastframetime ? ( (t - this.lastframetime)/1000.0).fixed() : 0.016;
+		this.dt = this.lastframetime ? Util.trimFloat( (t - this.lastframetime)/1000.0) : 0.016;
 	
 		//Store the last frame time
 		this.lastframetime = t;
@@ -65,29 +63,29 @@ class GameCore {
 
 	checkCollision( item ) {
 	
-			//Left wall.
+		//Left wall.
 		if(item.pos.x <= item.posLimits.xMin) {
 			item.pos.x = item.posLimits.xMin;
 		}
 	
-			//Right wall
+		//Right wall
 		if(item.pos.x >= item.posLimits.xMax ) {
 			item.pos.x = item.posLimits.xMax;
 		}
 		
-			//Roof wall.
+		//Roof wall.
 		if(item.pos.y <= item.posLimits.yMin) {
 			item.pos.y = item.posLimits.yMin;
 		}
 	
-			//Floor wall
+		//Floor wall
 		if(item.pos.y >= item.posLimits.yMax ) {
 			item.pos.y = item.posLimits.yMax;
 		}
 	
-			//Fixed point helps be more deterministic
-		item.pos.x = item.pos.x.fixed(4);
-		item.pos.y = item.pos.y.fixed(4);
+		//Fixed point helps be more deterministic
+		item.pos.x = Util.trimFloat(item.pos.x, 4);
+		item.pos.y = Util.trimFloat(item.pos.y, 4);
 		
 	}
 
@@ -147,31 +145,59 @@ class GameCore {
 
 		//Must be fixed step, at physics sync speed.
 		return {
-			x : (x * (this.playerspeed * 0.015)).fixed(3),
-			y : (y * (this.playerspeed * 0.015)).fixed(3)
+			x : Util.trimFloat(x * (this.playerspeed * 0.015)),
+			y : Util.trimFloat(y * (this.playerspeed * 0.015))
 		};
 
 	}
 
-	pos(a) { return {x:a.x,y:a.y}; }
+	pos(a) { 
+		return {x:a.x,y:a.y}; 
+	}
 	
 	//Add a 2d vector with another one and return the resulting vector
-	vAdd(a,b) { return { x:(a.x+b.x).fixed(), y:(a.y+b.y).fixed() }; }
+	vAdd(a, b) {
+		return {
+			x: Util.trimFloat(a.x + b.x),
+			y: Util.trimFloat(a.y + b.y)
+		};
+	}
 	
 	//Subtract a 2d vector with another one and return the resulting vector
-	vSub(a,b) { return { x:(a.x-b.x).fixed(),y:(a.y-b.y).fixed() }; }
+	vSub(a, b) { 
+		return {
+			x: Util.trimFloat(a.x - b.x),
+			y: Util.trimFloat(a.y - b.y)
+		};
+	}
 	
 	//Multiply a 2d vector with a scalar value and return the resulting vector
-	vMulScalar(a,b) { return {x: (a.x*b).fixed() , y:(a.y*b).fixed() }; }
+	vMulScalar(a, b) {
+		return {
+			x: Util.trimFloat(a.x*b), 
+			y: Util.trimFloat(a.y*b) 
+		};
+	}
 	
 	//For the server, we need to cancel the setTimeout that the polyfill creates
-	stopUpdate() {  window.cancelAnimationFrame( this.updateid );  }
+	stopUpdate() {
+		window.cancelAnimationFrame(this.updateid);
+	}
 	
 	//Simple linear interpolation
-	lerp(p, n, t) { var _t = Number(t); _t = (Math.max(0, Math.min(1, _t))).fixed(); return (p + _t * (n - p)).fixed(); }
+	lerp(p, n, t) {
+		let _t = Number(t);
+		_t = Util.trimFloat(Math.max(0, Math.min(1, _t))); 
+		return Util.trimFloat(p + _t * (n - p)); 
+	}
 	
 	//Simple linear interpolation between 2 vectors
-	vLerp(v,tv,t) { return { x: this.lerp(v.x, tv.x, t), y:this.lerp(v.y, tv.y, t) }; }
+	vLerp(v, tv, t) {
+		return {
+			x: this.lerp(v.x, tv.x, t),
+			y:this.lerp(v.y, tv.y, t) 
+		}; 
+	}
 }
 
 module.exports = GameCore;

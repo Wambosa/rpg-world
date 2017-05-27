@@ -139,7 +139,7 @@ class ClientGameCore extends GameCore {
 			//Store the input state as a snapshot of what happened.
 		this.players.self.inputs.push({
 			inputs : input,
-			time : this.localTime.fixed(3),
+			time : Util.trimFloat(this.localTime),
 			seq : this.inputSeq
 		});
 
@@ -265,8 +265,8 @@ class ClientGameCore extends GameCore {
 			this.targetTime = target.t;
 	
 			var difference = this.targetTime - currentTime;
-			var maxDifference = (target.t - previous.t).fixed(3);
-			var timePoint = (difference/maxDifference).fixed(3);
+			var maxDifference = Util.trimFloat(target.t - previous.t);
+			var timePoint = Util.trimFloat(difference/maxDifference);
 	
 				//Because we use the same target and previous in extreme cases
 				//It is possible to get incorrect values due to division by 0 difference
