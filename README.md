@@ -9,6 +9,8 @@ _phaserjs movement + socket.io experiment_
 
 
 ## usage
+_can view the [regular rpg demo here with this link](https://preview.c9users.io/wambosa/multiplayer_playground/rpg/index_rpg.html)_
+
 - `npm install` 
 	- only have to run _once_
 	- this creates a folder called `node_modules` that will contain dependencies for the game server
@@ -18,7 +20,7 @@ _phaserjs movement + socket.io experiment_
 - clients can then connect to `http://your_ipAddress:8081`
 
 
-### lance-gg concepts
+### project organization
 _even though i am not using the lib. it had excellent directory organization_
 - `common/` will contain code that is shared between both server and client(s)
 	- we want the core game engine here and any classes that the server might need
@@ -42,7 +44,7 @@ _the multiplayer code works, and needs a total makeover. some starting points ar
 - WARN: todo.
 	- there is a major clash in the player concept. at times it is a socket connection while other times its an actual instance of class Player
 	- the GameServer class should only be concerned with the socket connection. i'll need to verify this assumption and refactor the GameServer class for clarity
-- a better time server
+- a better time sync (timezone mismatch? or unsynchronized clocks)
 	- until i improve the time sync in the code itself, removing time.windows.com is ideal
 	- replace with pool.ntp.org [lifehack](http://lifehacker.com/5819797/synchronize-your-windows-clock-with-an-alternative-time-server-to-increase-accuracy)
 - the idea of players.self and players.other wants to be a dictionary or array

@@ -1,3 +1,5 @@
+var RPG = RPG || {}; //note: temporarily here
+
 
 /**
  * This is meant to run on a client web browser, currently it is performing canvas draws directly.
@@ -116,6 +118,16 @@ class ClientGameCore extends GameCore {
 		this.createDebugGui();
 		
 		this.createPhysicsSimulation(this.updatePhysics.bind(this));
+		
+		RPG.dim = RPG.getGameLandscapeDimensions(440, 400);
+		
+		RPG.game = new Phaser.Game(RPG.dim.w, RPG.dim.h, Phaser.AUTO);
+		
+		RPG.game.state.add('Boot', RPG.BootState); 
+		RPG.game.state.add('Preload', RPG.PreloadState); 
+		RPG.game.state.add('Game', RPG.GameState);
+		
+		RPG.game.state.start('Boot'); 
 	}
 	
 	update(t){
@@ -253,7 +265,7 @@ class ClientGameCore extends GameCore {
 		var myServerPos = this.players.self.host ? latestServerData.hp : latestServerData.cp;
 	
 			//Update the debug server position block
-		this.ghosts.serverPosSelf.pos = this.pos(myServerPos);
+		this.ghosts.serverPosSelf.pos = Util.copy(myServerPos);
 	
 				//here we handle our local input prediction ,
 				//by correcting it with the server and reconciling its differences
@@ -279,7 +291,7 @@ class ClientGameCore extends GameCore {
 					var numberToClear = Math.abs(lastinputseqIndex - (-1));
 					this.players.self.inputs.splice(0, numberToClear);
 						//The player is now located at the new server position, authoritive server
-					this.players.self.curState.pos = this.pos(myServerPos);
+					this.players.self.curState.pos = Util.copy(myServerPos);
 					this.players.self.lastInputSeq = lastinputseqIndex;
 					
 					//Now we reapply all the inputs that we have locally that
@@ -366,13 +378,13 @@ class ClientGameCore extends GameCore {
 	
 				//update the dest block, this is a simple lerp
 				//to the target from the previous point in the serverUpdates buffer
-			this.ghosts.serverPosOther.pos = this.pos(otherServerPos);
+			this.ghosts.serverPosOther.pos = Util.copy(otherServerPos);
 			this.ghosts.posOther.pos = this.vLerp(otherPastPos, otherTargetPos, timePoint);
 	
 			if(this.clientSmoothing) {
 				this.players.other.pos = this.vLerp( this.players.other.pos, this.ghosts.posOther.pos, this._pdt*this.clientSmooth);
 			} else {
-				this.players.other.pos = this.pos(this.ghosts.posOther.pos);
+				this.players.other.pos = Util.copy(this.ghosts.posOther.pos);
 			}
 	
 				//Now, if not predicting client movement , we will maintain the local player position
@@ -387,14 +399,14 @@ class ClientGameCore extends GameCore {
 				var myPastPos = this.players.self.host ? previous.hp : previous.cp;
 	
 					//Snap the ghost to the new server position
-				this.ghosts.serverPosSelf.pos = this.pos(myServerPos);
+				this.ghosts.serverPosSelf.pos = Util.copy(myServerPos);
 				var localTarget = this.vLerp(myPastPos, myTargetPos, timePoint);
 	
 					//Smoothly follow the destination position
 				if(this.clientSmoothing) {
 					this.players.self.pos = this.vLerp( this.players.self.pos, localTarget, this._pdt*this.clientSmooth);
 				} else {
-					this.players.self.pos = this.pos( localTarget );
+					this.players.self.pos = Util.copy(localTarget );
 				}
 			}
 	
@@ -432,11 +444,11 @@ class ClientGameCore extends GameCore {
 		if(this.naiveApproach) {
 
 			if(data.hp) {
-				playerHost.pos = this.pos(data.hp);
+				playerHost.pos = Util.copy(data.hp);
 			}
 
 			if(data.cp) {
-				playerClient.pos = this.pos(data.cp);
+				playerClient.pos = Util.copy(data.cp);
 			}
 
 		} else {
@@ -501,7 +513,7 @@ class ClientGameCore extends GameCore {
 			
 			let localPlayer = this.players.self;
 			
-			localPlayer.oldState.pos = this.pos( localPlayer.curState.pos );
+			localPlayer.oldState.pos = Util.copy( localPlayer.curState.pos );
 			
 			let nd = this.processInput(localPlayer);
 			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, nd);
@@ -601,15 +613,15 @@ class ClientGameCore extends GameCore {
 		playerClient.pos = { x:500, y:200 };
 	
 			//Make sure the local player physics is updated
-		this.players.self.oldState.pos = this.pos(this.players.self.pos);
-		this.players.self.pos = this.pos(this.players.self.pos);
-		this.players.self.curState.pos = this.pos(this.players.self.pos);
+		this.players.self.oldState.pos = Util.copy(this.players.self.pos);
+		this.players.self.pos = Util.copy(this.players.self.pos);
+		this.players.self.curState.pos = Util.copy(this.players.self.pos);
 	
 			//Position all debug view items to their owners position
-		this.ghosts.serverPosSelf.pos = this.pos(this.players.self.pos);
+		this.ghosts.serverPosSelf.pos = Util.copy(this.players.self.pos);
 	
-		this.ghosts.serverPosOther.pos = this.pos(this.players.other.pos);
-		this.ghosts.posOther.pos = this.pos(this.players.other.pos);
+		this.ghosts.serverPosOther.pos = Util.copy(this.players.other.pos);
+		this.ghosts.posOther.pos = Util.copy(this.players.other.pos);
 	
 	}
 	

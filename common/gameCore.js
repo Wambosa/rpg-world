@@ -146,10 +146,6 @@ class GameCore {
 		};
 
 	}
-
-	pos(a) { 
-		return {x:a.x,y:a.y}; 
-	}
 	
 	//Add a 2d vector with another one and return the resulting vector
 	vAdd(a, b) {

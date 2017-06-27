@@ -1,3 +1,4 @@
+const Util = require("../common/util");
 const Player = require('../common/player');
 const GameCore = require('../common/gameCore');
 
@@ -56,14 +57,14 @@ class ServerGameCore extends GameCore {
 		//Handle player one
 		let p1 = this.players.self;
 		
-			p1.oldState.pos = this.pos( p1.pos );
+			p1.oldState.pos = Util.copy( p1.pos );
 			let newDir = this.processInput(p1);
 			p1.pos = this.vAdd( p1.oldState.pos, newDir );
 	
 		//Handle player two
 		let p2 = this.players.other;
 		
-			p2.oldState.pos = this.pos( p2.pos );
+			p2.oldState.pos = Util.copy( p2.pos );
 			var otherNewDir = this.processInput(p2);
 			p2.pos = this.vAdd( p2.oldState.pos, otherNewDir);
 	

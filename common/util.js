@@ -9,6 +9,10 @@ class Util {
 	static epoch() {
 		return new Date().getTime();
 	}
+	
+	static copy(obj) {
+		return Object.assign({}, obj);
+	}
 }
 
 module.exports = Util

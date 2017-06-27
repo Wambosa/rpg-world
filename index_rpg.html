@@ -1,26 +1,42 @@
 <!DOCTYPE html>
 <html>
 
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
-    <title>RPG world</title>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+		<title>RPG world</title>
 
-    <link rel="stylesheet" href="client/css/site.css">
+		<link rel="stylesheet" href="client/css/site.css">
 
-    <script type="text/javascript" src="client/vendor/phaser.js"></script>
-    <script type="text/javascript" src="client/vendor/dat.gui.min.js"></script>
-    
-    <script type="text/javascript" src="client/states/Boot.js"></script>
-    <script type="text/javascript" src="client/states/Preload.js"></script>
-    <script type="text/javascript" src="client/states/Game.js"></script>
-    <script type="text/javascript" src="client/prefabs/Player.js"></script>
+		<!--auto loaded?-->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
 
+		<!--vendor libraries-->
+		<script type="text/javascript" src="client/vendor/dat.gui.min.js"></script>
+		<script type="text/javascript" src="client/vendor/keyboard.js"></script>
 
-    <script src="client/scaler.js"></script>
-    <script src="client/main.js"></script>
-  </head>
+		<script type="text/javascript" src="client/vendor/phaser.js"></script>
 
-  <body>
-  </body>
+		<!--bootstrap/polyfills-->
+		<script type="text/javascript" src="client/shim.js"></script>
+
+		<!--dependencies-->
+		<script type="text/javascript" src="common/util.js"></script>
+		<script type="text/javascript" src="common/serverPacket.js"></script>
+		<script type="text/javascript" src="common/player.js"></script>
+		<script type="text/javascript" src="common/gameCore.js"></script>
+		<script type="text/javascript" src="client/clientGameCore.js"></script>
+		
+		<script type="text/javascript" src="client/states/Boot.js"></script>
+		<script type="text/javascript" src="client/states/Preload.js"></script>
+		<script type="text/javascript" src="client/states/Game.js"></script>
+		<script type="text/javascript" src="client/prefabs/Player.js"></script>
+		<script src="client/scaler.js"></script>
+		
+		<script type="text/javascript" src="client/launchClient.js"></script>
+	</head>
+
+	<body>
+		<canvas id="game-canvas"></canvas>
+	</body>
 </html>
