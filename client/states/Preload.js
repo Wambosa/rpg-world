@@ -11,31 +11,31 @@ RPG.PreloadState = {
     this.load.setPreloadSprite(this.preloadBar);
 
     //load game assets    
-    this.load.image('sword', 'assets/images/attack-icon.png');
-    this.load.image('quest', 'assets/images/quest-button.png');
-    this.load.image('chest', 'assets/images/chest-gold.png');
-    this.load.image('coin', 'assets/images/coin.png');
-    this.load.image('potion', 'assets/images/potion.png');
-    this.load.image('shield', 'assets/images/shield.png');
-    this.load.image('scroll', 'assets/images/scroll-skull.png');
-    this.load.image('strangeItem', 'assets/images/gods-helmet.png');
-    this.load.image('arrow', 'assets/images/arrow.png');
+    this.load.image('sword', 'client/assets/images/attack-icon.png');
+    this.load.image('quest', 'client/assets/images/quest-button.png');
+    this.load.image('chest', 'client/assets/images/chest-gold.png');
+    this.load.image('coin', 'client/assets/images/coin.png');
+    this.load.image('potion', 'client/assets/images/potion.png');
+    this.load.image('shield', 'client/assets/images/shield.png');
+    this.load.image('scroll', 'client/assets/images/scroll-skull.png');
+    this.load.image('strangeItem', 'client/assets/images/gods-helmet.png');
+    this.load.image('arrow', 'client/assets/images/arrow.png');
 
-    this.load.image('monster', 'assets/images/demon.png');
-    this.load.image('dragon', 'assets/images/goldendragon.png');
-    this.load.image('snake', 'assets/images/snake.png');
-    this.load.image('skeleton', 'assets/images/swordskeleton.png');
+    this.load.image('monster', 'client/assets/images/demon.png');
+    this.load.image('dragon', 'client/assets/images/goldendragon.png');
+    this.load.image('snake', 'client/assets/images/snake.png');
+    this.load.image('skeleton', 'client/assets/images/swordskeleton.png');
 
-    this.load.image('sword', 'assets/images/attack-icon.png');
-    this.load.spritesheet('player', 'assets/images/player.png', 30, 30, 2, 0, 2);
-    this.load.image('tilesheet', 'assets/images/terrains.png');  
+    this.load.image('sword', 'client/assets/images/attack-icon.png');
+    this.load.spritesheet('player', 'client/assets/images/player.png', 30, 30, 2, 0, 2);
+    this.load.image('tilesheet', 'client/assets/images/terrains.png');  
 
     //load game data
     /*
     var fileCount = 3;
     var i;
     for(i=0; i< fileCount; i++ ){
-      this.load.tilemap('map'+i, 'assets/levels/world' + i + '.json', null, Phaser.Tilemap.TILED_JSON);
+      this.load.tilemap('map'+i, '../assets/levels/world' + i + '.json', null, Phaser.Tilemap.TILED_JSON);
     }
     */
     var x = 6;
@@ -44,7 +44,7 @@ RPG.PreloadState = {
       var y = 6;
       var j;
       for(j=0; j<y; j++){
-        this.load.tilemap(i+'-'+j, 'assets/levels/' + i + '-' + j + '.json', null, Phaser.Tilemap.TILED_JSON);
+        this.load.tilemap(i+'-'+j, 'client/assets/levels/' + i + '-' + j + '.json', null, Phaser.Tilemap.TILED_JSON);
       }
     }
     
