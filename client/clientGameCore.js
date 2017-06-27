@@ -4,29 +4,28 @@
  * in the near future, this will be converted to run with phaserJs instead
  * ClientGameCore
  * @implements {GameCore}
- * @property {Object} players - a poorly designed dictionary or Player references. needs refactor
+ * @property {Object} players - a poorly designed dictionary of Player references. needs refactor
  * @property {Object} ghosts - dictionary. debug visual aid. represents the server location of the two players. it is unclear why there are three ghosts with only two players
  * @property {THREEx.KeyboardState} keyboard - 3rd party input management object
  * @property {Object?} serverUpdates - A list of recent server updates we interpolate across. This is the buffer that is the driving factor for our networking
  * 
- * @property {boolean} showHelp - Whether or not to draw the help text
- * @property {boolean} naiveApproach - Whether or not to use the naive approach
- * @property {boolean} showServerPos - Whether or not to show the server position
- * @property {boolean} showDestPos - Whether or not to show the interpolation goal
- * @property {boolean} clientPredict - Whether or not the client is predicting input
+ * @property {boolean} showHelp - toggle to draw the help text
+ * @property {boolean} naiveApproach - toggle to use the naive approach
+ * @property {boolean} showServerPos - toggle to show the server position
+ * @property {boolean} showDestPos - toggle to show the interpolation goal
+ * @property {boolean} clientPredict - toggle the client is predicting input
+ * @property {boolean} clientSmoothing - toggle client side prediction (tries to smooth things out)
  * @property {int} inputSeq - When predicting client inputs, we store the last input as a sequence number
- * @property {boolean} clientSmoothing - Whether or not the client side prediction tries to smooth things out
  * @property {int} clientSmooth - amount of smoothing to apply to client update dest
- * @property {float} netLatency - the latency between the client and the server (ping/2)
- * @property {float} netPing - The round trip time from here to the server,and back
+ * @property {float} netLatency - the time it takes for client messages to reach the server (netPing / 2)
+ * @property {float} netPing - The round trip time from client to the server
  * @property {float} lastPingTime - The time we last sent a ping
  * @property {float} fakeLag - If we are simulating lag, this applies only to the input client (not others)
- * @property {float} fakeLagTime - 
  * @property {float} netOffset - latency between server and client interpolation for other clients
  * @property {int} bufferSize - The size of the server history to keep for rewinding/interpolating.
  * @property {float} targetTime - the time where we want to be in the server timeline
  * @property {float} oldestTick - the last time tick we have available in the buffer
- * @property {float} clientTime - Our local 'clock' based on server time - client interpolation(netOffset).
+ * @property {float} clientTime - Our local 'clock' based on server time - client interpolation(netOffset)
  * @property {float} serverTime - The time the server reported it was at, last we heard from it
  * @property {float} dt - The time that the last frame took to run
  * @property {int} fps - The current instantaneous fps (1/this.dt)
@@ -88,7 +87,6 @@ class ClientGameCore extends GameCore {
 		this.netPing = 0.001;
 		this.lastPingTime = 0.001;
 		this.fakeLag = 0;
-		this.fakeLagTime = 0;
 	
 		this.netOffset = 100;
 		this.bufferSize = 2;
@@ -106,13 +104,12 @@ class ClientGameCore extends GameCore {
 
 		this.serverUpdates = [];
 
-		//note: Connect to the socket.io server!
 		this.socket = this.connectToServer();
 
 		this.createPingTimer();
 
 		//note: Set their colors from the storage or locally
-		this.color = localStorage.getItem('color') || '#cc8822' ;
+		this.color = localStorage.getItem('color') || '#cc8822';
 		localStorage.setItem('color', this.color);
 		this.players.self.color = this.color;
 
@@ -501,10 +498,14 @@ class ClientGameCore extends GameCore {
 	updatePhysics() {
 	
 		if(this.clientPredict) {
-			this.players.self.oldState.pos = this.pos( this.players.self.curState.pos );
-			let nd = this.processInput(this.players.self);
-			this.players.self.curState.pos = this.vAdd( this.players.self.oldState.pos, nd);
-			this.players.self.stateTime = this.localTime;
+			
+			let localPlayer = this.players.self;
+			
+			localPlayer.oldState.pos = this.pos( localPlayer.curState.pos );
+			
+			let nd = this.processInput(localPlayer);
+			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, nd);
+			localPlayer.stateTime = this.localTime;
 		}
 	}
 	

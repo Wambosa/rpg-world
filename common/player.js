@@ -59,14 +59,14 @@ class Player {
 	//this method will get removed soon since phaser does not need to be managed
 	draw(){
 		//Set the color for this player
-		game.ctx.fillStyle = this.color;
+		this.game.ctx.fillStyle = this.color;
 	
 		//Draw a rectangle for us
-		game.ctx.fillRect(this.pos.x - this.size.hx, this.pos.y - this.size.hy, this.size.x, this.size.y);
+		this.game.ctx.fillRect(this.pos.x - this.size.hx, this.pos.y - this.size.hy, this.size.x, this.size.y);
 	
 		//Draw a status update
-		game.ctx.fillStyle = this.infoColor;
-		game.ctx.fillText(this.state, this.pos.x+10, this.pos.y + 4);
+		this.game.ctx.fillStyle = this.infoColor;
+		this.game.ctx.fillText(this.state, this.pos.x+10, this.pos.y + 4);
 	}
 }
 
