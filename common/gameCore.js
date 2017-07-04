@@ -16,12 +16,9 @@ Clock = require('./clock');
  */
 class GameCore {
 
-	constructor(params) {
+	constructor() {
 
 		this.playerspeed = 120;
-
-		this.physicsDeltaTime = 0.0001;
-		this.lastPhysicsDeltaTime = Util.epoch();
 		
 		this.clock = new Clock({
 			interval: 4

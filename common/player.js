@@ -15,9 +15,8 @@ require('./util');
 class Player {
 	
 	constructor(params) {
-		
-		//WARN: todo this is the socket.io client. rename
-		this.instance = params.playerInstance;
+
+		this.socketClient = params.socketClient;
 		
 		this.game = params.gameInstance;
 	

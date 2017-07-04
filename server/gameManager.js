@@ -39,13 +39,12 @@ class GameManager {
 		//note: stash messages for later
 		this.messages.push(webSocketMessage);
 
-		setTimeout(function() {
-			
+		setTimeout(() => {
+		
 			if(this.messages.length)
 				this.messageHandler( this.messages.shift());
 				
-		//todo: why is _this_ binded if there is no use of the _this_ keyword?
-		}.bind(this), this.artificialLag);
+		}, this.artificialLag);
 	}
 	
 	messageHandler (webSocketMessage) {

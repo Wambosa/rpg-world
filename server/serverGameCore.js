@@ -5,13 +5,10 @@ const GameCore = require('../common/gameCore');
 
 class ServerGameCore extends GameCore {
 	
-	constructor(params){
-		super(params);
+	constructor(managerState) {
+		super();
 		
 		this.server = true;
-		
-		//Store the instance, if any
-		this.instance = params;
 		
 		// 45 ms
 		let frameTime = 45;
@@ -29,8 +26,8 @@ class ServerGameCore extends GameCore {
 		};
 		
 		this.players = {
-			self : new Player({gameInstance: this, playerInstance: this.instance.playerHost}),
-			other : new Player({gameInstance: this, playerInstance: this.instance.playerClient})
+			self : new Player({gameInstance: this, socketClient: managerState.playerHost}),
+			other : new Player({gameInstance: this, socketClient: managerState.playerClient})
 		};
 
 		this.players.self.pos = {x:20,y:20};
@@ -98,13 +95,13 @@ class ServerGameCore extends GameCore {
 		};
 	
 			//Send the snapshot to the 'host' player
-		if(this.players.self.instance) {
-			this.players.self.instance.emit( 'onserverupdate', this.laststate );
+		if(this.players.self.socketClient) {
+			this.players.self.socketClient.emit( 'onserverupdate', this.laststate );
 		}
 	
 			//Send the snapshot to the 'client' player
-		if(this.players.other.instance) {
-			this.players.other.instance.emit( 'onserverupdate', this.laststate );
+		if(this.players.other.socketClient) {
+			this.players.other.socketClient.emit( 'onserverupdate', this.laststate );
 		}
 	
 	}
@@ -112,7 +109,7 @@ class ServerGameCore extends GameCore {
 	handleServerInput(client, input, inputTime, inputSeq) {
 	
 			//Fetch which client this refers to out of the two
-		let player = (client.userid == this.players.self.instance.userid)
+		let player = (client.userid == this.players.self.socketClient.userid)
 			? this.players.self 
 			: this.players.other;
 	
