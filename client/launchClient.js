@@ -10,8 +10,8 @@ window.onload = function() {
 
 	game.viewport = document.getElementById('game-canvas');
 
-	game.viewport.width = game.world.width;
-	game.viewport.height = game.world.height;
+	game.viewport.width = 720;
+	game.viewport.height = 480;
 
 	game.ctx = game.viewport.getContext('2d');
 	

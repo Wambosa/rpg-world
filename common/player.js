@@ -10,7 +10,7 @@ require('./util');
  * @type {Object}
  * @property
  * @property
- * @summary The blueprint contains the list of valid objects to the core game
+ * @summary contains the state for player cubes
  */
 class Player {
 	
@@ -40,11 +40,13 @@ class Player {
 		this.inputs = [];
 	
 		//The world bounds we are confined to
+		let boundry = params.boundry || {x: 720, y: 480};
+		
 		this.posLimits = {
 			xMin: this.size.hx,
-			xMax: this.game.world.width - this.size.hx,
+			xMax: boundry.x - this.size.hx,
 			yMin: this.size.hy,
-			yMax: this.game.world.height - this.size.hy
+			yMax: boundry.y - this.size.hy
 		};
 		
 		//The 'host' of a game gets created with a player instance since

@@ -10,9 +10,9 @@ global.window = global.document = global;
 
 //WARN: todo.
 // there is a major clash in the player concept. at times it is a socket connection while other times its an actual instance of class Player
-// the GameServer class should only be concerned with the socket connection. i'll need to verify this assumption and refactor the GameServer class for clarity
+// the GameManager class should only be concerned with the socket connection. i'll need to verify this assumption and refactor the GameManager class for clarity
 
-class GameServer {
+class GameManager {
 	
 	constructor(params) {
 
@@ -24,16 +24,6 @@ class GameServer {
 		this.gameCount = 0;
 		
 		this.messages = [];
-		
-		this.localTime = 0;
-		this._dt = new Date().getTime();
-		this._dte = new Date().getTime();
-		
-		setInterval(() => {
-			this._dt = new Date().getTime() - this._dte;
-			this._dte = new Date().getTime();
-			this.localTime += this._dt / 1000.0;
-		}, 4);
 	}
 	
 	log() {
@@ -180,7 +170,7 @@ class GameServer {
 		//tell the player that they are now the host
 		//s=server message, h=you are hosting
 
-		client.send('s.h.'+ String(theGame.gamecore.localTime).replace('.','-'));
+		client.send('s.h.'+ String(theGame.gamecore.clock.time).replace('.','-'));
 		
 		//WARN: mutation of argument
 		client.game = theGame;
@@ -202,8 +192,8 @@ class GameServer {
 
 		//now we tell both that the game is ready to start
 		//clients will reset their positions in this case.
-		game.playerClient.send('s.r.'+ String(game.gamecore.localTime).replace('.','-'));
-		game.playerHost.send('s.r.'+ String(game.gamecore.localTime).replace('.','-'));
+		game.playerClient.send('s.r.'+ String(game.gamecore.clock.time).replace('.','-'));
+		game.playerHost.send('s.r.'+ String(game.gamecore.clock.time).replace('.','-'));
  
 		//set this flag, so that the update loop can run it.
 		game.active = true;
@@ -217,6 +207,8 @@ class GameServer {
 	
 				//stop the game updates immediate
 				theGame.gamecore.stopUpdate();
+				clearInterval(theGame.gamecore.clock.intervalId);
+				clearInterval(theGame.gamecore.physicsClock.intervalId);
 	
 				//if the game has two players, the one is leaving
 				if(theGame.playerCount > 1) {
@@ -258,4 +250,4 @@ class GameServer {
 }
 
 
-module.exports = GameServer;
+module.exports = GameManager;

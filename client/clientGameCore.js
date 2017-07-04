@@ -117,7 +117,10 @@ class ClientGameCore extends GameCore {
 
 		this.createDebugGui();
 		
-		this.createPhysicsSimulation(this.updatePhysics.bind(this));
+		this.physicsClock = new Clock({
+			interval: 15,
+			intervalFunc: this.updatePhysics.bind(this)
+		});
 		
 		RPG.dim = RPG.getGameLandscapeDimensions(440, 400);
 		
@@ -127,7 +130,7 @@ class ClientGameCore extends GameCore {
 		RPG.game.state.add('Preload', RPG.PreloadState); 
 		RPG.game.state.add('Game', RPG.GameState);
 		
-		RPG.game.state.start('Boot'); 
+		RPG.game.state.start('Boot');
 	}
 	
 	update(t){
@@ -226,7 +229,7 @@ class ClientGameCore extends GameCore {
 			//Store the input state as a snapshot of what happened.
 			this.players.self.inputs.push({
 				inputs : input,
-				time : Util.trimFloat(this.localTime),
+				time : Util.trimFloat(this.clock.time),
 				seq : this.inputSeq
 			});
 			
@@ -235,7 +238,7 @@ class ClientGameCore extends GameCore {
 			let serverPacket = new ServerPacket({
 				type: 'i',
 				input: input,
-				timestamp: this.localTime,
+				timestamp: this.clock.time,
 				sequenceId: this.inputSeq
 			});
 			
@@ -382,7 +385,7 @@ class ClientGameCore extends GameCore {
 			this.ghosts.posOther.pos = this.vLerp(otherPastPos, otherTargetPos, timePoint);
 	
 			if(this.clientSmoothing) {
-				this.players.other.pos = this.vLerp( this.players.other.pos, this.ghosts.posOther.pos, this._pdt*this.clientSmooth);
+				this.players.other.pos = this.vLerp( this.players.other.pos, this.ghosts.posOther.pos, this.physicsClock.deltaTime*this.clientSmooth);
 			} else {
 				this.players.other.pos = Util.copy(this.ghosts.posOther.pos);
 			}
@@ -404,7 +407,7 @@ class ClientGameCore extends GameCore {
 	
 					//Smoothly follow the destination position
 				if(this.clientSmoothing) {
-					this.players.self.pos = this.vLerp( this.players.self.pos, localTarget, this._pdt*this.clientSmooth);
+					this.players.self.pos = this.vLerp( this.players.self.pos, localTarget, this.physicsClock.deltaTime*this.clientSmooth);
 				} else {
 					this.players.self.pos = Util.copy(localTarget );
 				}
@@ -481,7 +484,7 @@ class ClientGameCore extends GameCore {
 	 if(this.clientPredict) {
 	
 				//Work out the time we have since we updated the state
-			var t = (this.localTime - this.players.self.stateTime) / this._pdt;
+			var t = (this.clock.time - this.players.self.stateTime) / this.physicsClock.deltaTime;
 	
 				//Then store the states for clarity,
 			var oldState = this.players.self.oldState.pos;
@@ -492,7 +495,7 @@ class ClientGameCore extends GameCore {
 			this.players.self.pos = currentState;
 			
 				//We handle collision on client if predicting.
-			this.checkCollision( this.players.self );
+			this.clampToBoundaries( this.players.self );
 	
 		}  //if(this.clientPredict)
 	
@@ -517,7 +520,7 @@ class ClientGameCore extends GameCore {
 			
 			let nd = this.processInput(localPlayer);
 			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, nd);
-			localPlayer.stateTime = this.localTime;
+			localPlayer.stateTime = this.clock.time;
 		}
 	}
 	
@@ -595,7 +598,7 @@ class ClientGameCore extends GameCore {
 		var _netsettings = this.gui.addFolder('Networking');
 			
 			_netsettings.add(this, 'netOffset').min(0.01).step(0.1).listen();
-			_netsettings.add(this, 'localTime').listen();
+			_netsettings.add(this.clock, 'time').listen();
 			_netsettings.add(this, 'serverTime').listen();
 			_netsettings.add(this, 'clientTime').listen();
 			//_netsettings.add(this, 'oldestTick').step(0.001).listen();
@@ -632,8 +635,8 @@ class ClientGameCore extends GameCore {
 		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
 		var playerClient = this.players.self.host ?  this.players.other : this.players.self;
 	
-		this.localTime = serverTime + this.netLatency;
-		console.log('server time is about ' + this.localTime);
+		this.clock.time = serverTime + this.netLatency;
+		console.log('server time is about ' + this.clock.time);
 	
 			//Store their info colors for clarity. server is always blue
 		playerHost.infoColor = '#2288cc';
@@ -671,7 +674,7 @@ class ClientGameCore extends GameCore {
 		var serverTime = parseFloat(data.replace('-','.'));
 	
 			//Get an estimate of the current time on the server
-		this.localTime = serverTime + this.netLatency;
+		this.clock.time = serverTime + this.netLatency;
 	
 			//Set the flag that we are hosting, this helps us position respawns correctly
 		this.players.self.host = true;

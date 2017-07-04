@@ -1,27 +1,38 @@
 <!DOCTYPE html>
 <html>
+
 	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+		<title>RPG world</title>
 
-		<title>playground</title>
+		<link rel="stylesheet" href="client/css/site.css">
 
-		<link href="./client/css/site.css" media="screen" rel="stylesheet" type="text/css">
-		
 		<!--auto loaded?-->
-		<script src="/socket.io/socket.io.js"></script>
-		
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
 		<!--vendor libraries-->
 		<script type="text/javascript" src="client/vendor/dat.gui.min.js"></script>
 		<script type="text/javascript" src="client/vendor/keyboard.js"></script>
-		
+
+		<script type="text/javascript" src="client/vendor/phaser.js"></script>
+
 		<!--bootstrap/polyfills-->
 		<script type="text/javascript" src="client/shim.js"></script>
-		
+
 		<!--dependencies-->
 		<script type="text/javascript" src="common/util.js"></script>
+		<script type="text/javascript" src="common/clock.js"></script>		
 		<script type="text/javascript" src="common/serverPacket.js"></script>
 		<script type="text/javascript" src="common/player.js"></script>
 		<script type="text/javascript" src="common/gameCore.js"></script>
 		<script type="text/javascript" src="client/clientGameCore.js"></script>
+		
+		<script type="text/javascript" src="client/states/Boot.js"></script>
+		<script type="text/javascript" src="client/states/Preload.js"></script>
+		<script type="text/javascript" src="client/states/Game.js"></script>
+		<script type="text/javascript" src="client/prefabs/Player.js"></script>
+		<script src="client/scaler.js"></script>
 		
 		<script type="text/javascript" src="client/launchClient.js"></script>
 	</head>

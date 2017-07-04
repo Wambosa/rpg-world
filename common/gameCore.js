@@ -1,31 +1,36 @@
 Util = require('./util');
+Clock = require('./clock');
 
+/**
+ * This is meant to run on both in a nodejs environment and a client web browser.
+ * GameCore is the base class that clientGameCore and serverGameCore use. 
+ * This entire system is undergoing a major refactor to support phaser. 
+ * It will likely see many changes before it is settled into the true center of functionality
+ * GameCore
+ * @class
+ * 
+ * @property {Clock} clock - A local timer for precision on server and client
+ * @property {Clock} physicsClock - physics integration values
+ * 
+ * @summary the clientSide game loop
+ */
 class GameCore {
 
-	constructor(params){
-
-		//Used in collision etc.
-		this.world = {
-			width : 720,
-			height : 480
-		};
+	constructor(params) {
 
 		this.playerspeed = 120;
 
-		//Set up some physics integration values
-		this._pdt = 0.0001;                 //The physics update delta time
-		this._pdte = Util.epoch();  //The physics update last delta time
-		//A local timer for precision on server and client
-		this.localTime = 0.016;            //The local timer
-		this._dt = Util.epoch();    //The local timer delta
-		this._dte = Util.epoch();   //The local timer last frame time
-
-		//Start a physics loop, this is separate to the rendering
-		//as this happens at a fixed frequency
+		this.physicsDeltaTime = 0.0001;
+		this.lastPhysicsDeltaTime = Util.epoch();
 		
-
-		//Start a fast paced timer for measuring time easier
-		this.createTimer();
+		this.clock = new Clock({
+			interval: 4
+		});
+		
+		this.physicsClock = null;
+		// client and server will start a physics loop,
+		// this is a separate loop to the rendering
+		// as this must happen at a fixed frequency
 	}
 
 	update(t) {
@@ -42,23 +47,7 @@ class GameCore {
 		this.updateid = window.requestAnimationFrame( this.update.bind(this), this.viewport );
 	}
 
-	createTimer(){
-		setInterval(function(){
-			this._dt = Util.epoch() - this._dte;
-			this._dte = Util.epoch();
-			this.localTime += this._dt/1000.0;
-		}.bind(this), 4);
-	}
-	
-	createPhysicsSimulation(physicsFunc) {
-		setInterval(function(){
-			this._pdt = (Util.epoch() - this._pdte)/1000.0;
-			this._pdte = Util.epoch();
-			physicsFunc();
-		}.bind(this), 15);
-	}
-
-	checkCollision( item ) {
+	clampToBoundaries( item ) {
 	
 		//Left wall.
 		if(item.pos.x <= item.posLimits.xMin) {

@@ -1,4 +1,5 @@
 const Util = require("../common/util");
+const Clock = require("../common/clock");
 const Player = require('../common/player');
 const GameCore = require('../common/gameCore');
 
@@ -34,7 +35,10 @@ class ServerGameCore extends GameCore {
 
 		this.players.self.pos = {x:20,y:20};
 		
-		this.createPhysicsSimulation(this.serverUpdatePhysics.bind(this));
+		this.physicsClock = new Clock({
+			interval: 15,
+			intervalFunc: this.serverUpdatePhysics.bind(this)
+		});
 	}
 	
 	update(t){
@@ -69,8 +73,8 @@ class ServerGameCore extends GameCore {
 			p2.pos = this.vAdd( p2.oldState.pos, otherNewDir);
 	
 		//Keep the physics position in the world
-		this.checkCollision( p1 );
-		this.checkCollision( p2 );
+		this.clampToBoundaries( p1 );
+		this.clampToBoundaries( p2 );
 	
 		p1.inputs = []; //we have used the input buffer, so remove this
 		p2.inputs = []; //we have used the input buffer, so remove this
@@ -82,7 +86,7 @@ class ServerGameCore extends GameCore {
 	serverUpdate(){
 	
 			//Update the state of our local clock to match the timer
-		this.serverTime = this.localTime;
+		this.serverTime = this.clock.time;
 	
 			//Make a snapshot of the current state, for updating the clients
 		this.laststate = {

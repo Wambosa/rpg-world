@@ -4,6 +4,7 @@ const http = require('http');
 const io = require('socket.io');
 const express = require('express');
 const token = require('./server/nameGenerator');
+const GameManager = require('./server/gameManager.js');
 const WebSocketMessage = require('./common/webSocketMessage');
 
 
@@ -41,10 +42,8 @@ function main() {
 	
 	
 	var sio = io(server);
-
-	let GameServer = require('./server/gameServer.js');
 	
-	let gameServer = new GameServer({
+	let gameManager = new GameManager({
 		verbose: true,
 		artificialLag: 0
 	});
@@ -62,14 +61,14 @@ function main() {
 		
 		//todo: this needs to return new properties that are to be attached to client for clarity
 		// the mothod is currently mutating client
-		gameServer.findGame(client);
+		gameManager.findGame(client);
 
 		console.log(`SOCKET.IO | CONNECTED: ${client.userid}`);
 		
 		//note: callback when client sends a message into the stream
 		client.on('message', (m) => {
 
-			gameServer.onMessage(new WebSocketMessage({client: client, message: m}));
+			gameManager.onMessage(new WebSocketMessage({client: client, message: m}));
 		});
 		
 		//note: When this client disconnects
@@ -77,9 +76,9 @@ function main() {
 
 			console.log(`SOCKET.IO | game session ${client.game.id} has dropped player ${client.userid}`);
 			
-			//note: if set by gameServer.findGame  then player leaving a game destroys that game
+			//note: if set by gameManager.findGame then player leaving a game destroys that game
 			if(client.game && client.game.id)
-				gameServer.endGame(client.game.id, client.userid);
+				gameManager.endGame(client.game.id, client.userid);
 		});
 	});
 	
