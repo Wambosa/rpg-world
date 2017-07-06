@@ -1,6 +1,7 @@
 "use strict";
 
 const token = require('./nameGenerator');
+const Util = require("../common/util");
 const WebSocketMessage = require('../common/webSocketMessage');
 const ServerGameCore = require('./serverGameCore.js');
 
@@ -8,9 +9,6 @@ const ServerGameCore = require('./serverGameCore.js');
 global.window = global.document = global;
 
 
-//WARN: todo.
-// there is a major clash in the player concept. at times it is a socket connection while other times its an actual instance of class Player
-// the GameManager class should only be concerned with the socket connection. i'll need to verify this assumption and refactor the GameManager class for clarity
 
 class GameManager {
 	
@@ -20,7 +18,7 @@ class GameManager {
 		
 		this.artificialLag = params.artificialLag || 0;
 		
-		this.games = {};
+		this.sessions = {};
 		this.gameCount = 0;
 		
 		this.messages = [];
@@ -48,20 +46,17 @@ class GameManager {
 	}
 	
 	messageHandler (webSocketMessage) {
-	
-		let client = webSocketMessage.client;
-		let message = webSocketMessage.message;
-		let type = webSocketMessage.type;
+		
+		let { sessionState, client, message, type } = webSocketMessage;
 	
 		let slices = message.split('.');
 	
-		let otherClient =
-			client.game.playerHost.userid == client.userid ?
-				client.game.playerClient : client.game.playerHost;
+		// note: i really hate this
+		let otherClient = client.userid === sessionState.hostKey ? sessionState.playerClient : sessionState.playerHost;
 	
 		//todo: convert slices into named params in websocketmessage
 		if(type == 'input')
-			this.onInput(client, slices);
+			this.onInput(sessionState.gamecore, client, slices);
 		else if(type == 'player')
 			client.send('s.p.' + slices[1]);
 		else if(type == 'color')
@@ -71,7 +66,7 @@ class GameManager {
 			this.artificialLag = parseFloat(slices[1]);
 	}
 	
-	onInput (client, slices) {
+	onInput (gamecore, client, slices) {
 		// The input commands come in like u-l,
 		// so we split them up into separate commands,
 		// and then update the players
@@ -81,11 +76,11 @@ class GameManager {
 
 		// the client should be in a game, so
 		// we can tell that game to handle the input
-		if(client && client.game && client.game.gamecore){
+		if(client && gamecore) {
 			
-			client.game.gamecore.handleServerInput(client, inputCommands, inputTime, inputSeq);
+			gamecore.handleServerInput(client, inputCommands, inputTime, inputSeq);
 		}else{
-			console.log(`WARN?     | client:${!!client} game:${!!client.game} core: ${!!client.game.gamecore}`);
+			console.log(`WARN?     | client:${!!client} gamecore: ${!!gamecore}`);
 		}
 	}
 
@@ -93,156 +88,138 @@ class GameManager {
 
 		this.log(`SERVER    | new client looking for a game. ${this.gameCount} games running`);
 
-		//so there are games active,
-		//lets see if one needs another client
-		if(this.gameCount) {
+		let joinedAGame = false;
+
+		//Check the list of games for an open game
+		for(let sessionId in this.sessions) {
+			
+			//only care about our own properties.
+			if(!this.sessions.hasOwnProperty(sessionId))
+				continue;
+			
+			//get the game we are checking against
+			let sessionState = this.sessions[sessionId];
+
+			//join the game if not full
+			if(sessionState.playerCount < 2) {
+
+				//someone wants us to join!
+				joinedAGame = true;
 				
-			var joinedAGame = false;
+				//increase the player count and store
+				//the player as the client of this game
+				sessionState.playerClient = client;
+				sessionState.gamecore.players.other.socketClient = client;
+				sessionState.playerCount++;
 
-			//Check the list of games for an open game
-			for(var gameid in this.games) {
-				
-				//only care about our own properties.
-				if(!this.games.hasOwnProperty(gameid))
-					continue;
-				
-				//get the game we are checking against
-				var gameInstance = this.games[gameid];
-
-				//If the game is a client short
-				if(gameInstance.playerCount < 2) {
-
-					//someone wants us to join!
-					joinedAGame = true;
-					
-					//increase the player count and store
-					//the player as the client of this game
-					gameInstance.playerClient = client;
-					gameInstance.gamecore.players.other.instance = client;
-					gameInstance.playerCount++;
-
-					//start running the game on the server,
-					//which will tell them to respawn/start
-					this.startGame(gameInstance);
-
-				} //if less than 2 players
-			} //for all games
-
-			//now if we didn't join a game,
-			//we must create one
-			if(!joinedAGame) {
-
-				this.createGame(client);
-
-			} //if no join already
-
-		} else { //if there are any games at all
-
-			//no games? create one!
-			this.createGame(client);
+				//start running the game on the server,
+				//which will tell them to respawn/start
+				return this.startGame(sessionState);
+			}
 		}
+
+		//todo: might not need this line. now if we didn't join a game, we must create one
+		if(!joinedAGame)
+			return this.createGame(client);
 	}
 
 	createGame (client) {
 
-		//Create a new game instance
-		var theGame = {
+		//Create a new state object to manage a game session
+		var sessionState = {
 			id : token('give-me-a-place-name'),
+			hostKey: client.userid,
 			playerHost: client,
 			playerClient: null,
 			playerCount: 1
 		};
 
-		//Store it in the list of game
-		this.games[ theGame.id ] = theGame;
+		this.sessions[ sessionState.id ] = sessionState;
 
-		//Keep track
 		this.gameCount++;
 
 		//Create a new game core instance, this actually runs the
 		//game code like collisions and such.
-		theGame.gamecore = new ServerGameCore( theGame );
+		sessionState.gamecore = new ServerGameCore( sessionState );
 		
 		//Start updating the game loop on the server
-		theGame.gamecore.update( new Date().getTime() );
+		sessionState.gamecore.update( Util.epoch() );
 
 		//tell the player that they are now the host
 		//s=server message, h=you are hosting
 
-		client.send('s.h.'+ String(theGame.gamecore.clock.time).replace('.','-'));
+		client.send('s.h.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
 		
-		//WARN: mutation of argument
-		client.game = theGame;
-		client.hosting = true;
-		
-		this.log(`SERVER    | player ${client.userid} created game.id ${client.game.id}`);
+		this.log(`SERVER    | player ${client.userid} created session.id ${sessionState.id}`);
 
-		return theGame;
+		return sessionState;
 	}
 	
-	startGame (game) {
+	startGame (sessionState) {
 
-		//right so a game has 2 players and wants to begin
-		//the host already knows they are hosting,
-		//tell the other client they are joining a game
-		//s=server message, j=you are joining, send them the host id
-		game.playerClient.send('s.j.' + game.playerHost.userid);
-		game.playerClient.game = game;
+		// a game has 2 players and wants to begin
+		// the host already knows they are hosting,
+		// tell the other client they are joining a game
+		
+		// s=server message, j=you are joining, send them the host id
+		sessionState.playerClient.send('s.j.' + sessionState.playerHost.userid);
+		sessionState.playerClient.sessionState = sessionState;
 
-		//now we tell both that the game is ready to start
-		//clients will reset their positions in this case.
-		game.playerClient.send('s.r.'+ String(game.gamecore.clock.time).replace('.','-'));
-		game.playerHost.send('s.r.'+ String(game.gamecore.clock.time).replace('.','-'));
+		// tell both that the game is ready to start
+		// clients will reset their positions in this case.
+		sessionState.playerClient.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
+		sessionState.playerHost.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
  
-		//set this flag, so that the update loop can run it.
-		game.active = true;
+		//todo: should this flag be honored in server game core? so that the update loop only runs when multiple players are around?
+		sessionState.active = true;
+		return sessionState;
 	}
 	
-	endGame (gameid, userid) {
+	endGame (sessionId, userid) {
 	
-			let theGame = this.games[gameid];
+			let sessionState = this.sessions[sessionId];
 	
-			if(theGame) {
+			if(sessionState) {
 	
 				//stop the game updates immediate
-				theGame.gamecore.stopUpdate();
-				clearInterval(theGame.gamecore.clock.intervalId);
-				clearInterval(theGame.gamecore.physicsClock.intervalId);
+				sessionState.gamecore.stopUpdate();
+				clearInterval(sessionState.gamecore.clock.intervalId);
+				clearInterval(sessionState.gamecore.physicsClock.intervalId);
 	
 				//if the game has two players, the one is leaving
-				if(theGame.playerCount > 1) {
+				if(sessionState.playerCount > 1) {
 	
 					//send the players the message the game is ending
-					if(userid == theGame.playerHost.userid) {
+					if(userid == sessionState.playerHost.userid) {
 	
 						//the host left, oh snap. Lets try join another game
-						if(theGame.playerClient) {
+						if(sessionState.playerClient) {
 							//tell them the game is over
-							theGame.playerClient.send('s.e');
+							sessionState.playerClient.send('s.e');
 							//now look for/create a new game.
-							this.findGame(theGame.playerClient);
+							this.findGame(sessionState.playerClient);
 						}
 						
 					} else {
 						//the other player left, we were hosting
-						if(theGame.playerHost) {
+						if(sessionState.playerHost) {
 							//tell the client the game is ended
-							theGame.playerHost.send('s.e');
+							sessionState.playerHost.send('s.e');
 							//i am no longer hosting, this game is going down
-							theGame.playerHost.hosting = false;
+							sessionState.playerHost.hosting = false;
 							//now look for/create a new game.
-							this.findGame(theGame.playerHost);
+							this.findGame(sessionState.playerHost);
 						}
 					}
 				}
 	
-				delete this.games[gameid];
+				delete this.sessions[sessionId];
 				this.gameCount--;
 	
-				this.log(`SERVER    | game ${gameid} removed. there are now ${this.gameCount} running `);
+				this.log(`SERVER    | game ${sessionId} removed. there are now ${this.gameCount} running `);
 	
 			} else {
-				this.log(`SERVER    | game ${gameid} was not found!`);
+				this.log(`SERVER    | game ${sessionId} was not found!`);
 			}
 	
 		}

@@ -61,24 +61,27 @@ function main() {
 		
 		//todo: this needs to return new properties that are to be attached to client for clarity
 		// the mothod is currently mutating client
-		gameManager.findGame(client);
+		let sessionState = gameManager.findGame(client);
 
 		console.log(`SOCKET.IO | CONNECTED: ${client.userid}`);
 		
 		//note: callback when client sends a message into the stream
 		client.on('message', (m) => {
 
-			gameManager.onMessage(new WebSocketMessage({client: client, message: m}));
+			gameManager.onMessage(new WebSocketMessage({
+				sessionState: sessionState,
+				client: client,
+				message: m
+			}));
 		});
 		
 		//note: When this client disconnects
 		client.on('disconnect', () => {
 
-			console.log(`SOCKET.IO | game session ${client.game.id} has dropped player ${client.userid}`);
+			console.log(`SOCKET.IO | game session ${sessionState.id} has dropped player ${client.userid}`);
 			
 			//note: if set by gameManager.findGame then player leaving a game destroys that game
-			if(client.game && client.game.id)
-				gameManager.endGame(client.game.id, client.userid);
+			gameManager.endGame(sessionState.id, client.userid);
 		});
 	});
 	

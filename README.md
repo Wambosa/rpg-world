@@ -41,9 +41,6 @@ _even though i am not using the lib. it had excellent directory organization_
 
 ### future
 _the multiplayer code works, and needs a total makeover. some starting points are here. although there are many more_
-- WARN: todo.
-	- there is a major clash in the player concept. at times it is a socket connection while other times its an actual instance of class Player
-	- the GameServer class should only be concerned with the socket connection. i'll need to verify this assumption and refactor the GameServer class for clarity
 - a better time sync (timezone mismatch? or unsynchronized clocks)
 	- until i improve the time sync in the code itself, removing time.windows.com is ideal
 	- replace with pool.ntp.org [lifehack](http://lifehacker.com/5819797/synchronize-your-windows-clock-with-an-alternative-time-server-to-increase-accuracy)
@@ -54,3 +51,6 @@ _the multiplayer code works, and needs a total makeover. some starting points ar
 	- my mac book pro does not have any spiking issues
 	- need some logic in the serverside to prevent these spikes from affecting the game
 		- (aggregate input should do this?)
+- does there always have to be a host?
+	- yes. in this game. the host world determines what things look like.
+	- store the host id as a key to "managerState.players" array

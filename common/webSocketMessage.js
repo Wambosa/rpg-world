@@ -5,6 +5,7 @@ class WebSocketMessage {
 	
 	constructor(params) {
 
+		this.sessionState = params.sessionState;
 		this.client = params.client;
 		this.message = params.message;
 		

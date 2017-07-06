@@ -5,7 +5,7 @@ const GameCore = require('../common/gameCore');
 
 class ServerGameCore extends GameCore {
 	
-	constructor(managerState) {
+	constructor(sessionState) {
 		super();
 		
 		this.server = true;
@@ -26,8 +26,8 @@ class ServerGameCore extends GameCore {
 		};
 		
 		this.players = {
-			self : new Player({gameInstance: this, socketClient: managerState.playerHost}),
-			other : new Player({gameInstance: this, socketClient: managerState.playerClient})
+			self : new Player({gameInstance: this, socketClient: sessionState.playerHost}),
+			other : new Player({gameInstance: this, socketClient: sessionState.playerClient})
 		};
 
 		this.players.self.pos = {x:20,y:20};
