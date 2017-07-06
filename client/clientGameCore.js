@@ -4,6 +4,7 @@ var RPG = RPG || {}; //note: temporarily here
 /**
  * This is meant to run on a client web browser, currently it is performing canvas draws directly.
  * in the near future, this will be converted to run with phaserJs instead
+ * @class
  * ClientGameCore
  * @implements {GameCore}
  * @property {Object} players - a poorly designed dictionary of Player references. needs refactor
