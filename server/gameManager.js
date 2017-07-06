@@ -1,9 +1,11 @@
 "use strict";
 
-const token = require('./nameGenerator');
 const Util = require("../common/util");
-const WebSocketMessage = require('../common/webSocketMessage');
-const ServerGameCore = require('./serverGameCore.js');
+const token = require("./nameGenerator");
+const SessionState = require("./sessionState.js");
+const ServerGameCore = require("./serverGameCore.js");
+const WebSocketMessage = require("../common/webSocketMessage");
+
 
 //note: polyfill browser environment
 global.window = global.document = global;
@@ -101,20 +103,32 @@ class GameManager {
 			let sessionState = this.sessions[sessionId];
 
 			//join the game if not full
-			if(sessionState.playerCount < 2) {
+			if(sessionState.players.length < 2) {
 
 				//someone wants us to join!
 				joinedAGame = true;
 				
 				//increase the player count and store
 				//the player as the client of this game
-				sessionState.playerClient = client;
-				sessionState.gamecore.players.other.socketClient = client;
-				sessionState.playerCount++;
+				sessionState.addPlayer(client);
 
 				//start running the game on the server,
 				//which will tell them to respawn/start
-				return this.startGame(sessionState);
+				// a game has 2 players and wants to begin
+				// the host already knows they are hosting,
+				// tell the other client they are joining a game
+				
+				// s=server message, j=you are joining, send them the host id
+				sessionState.playerClient.send('s.j.' + sessionState.playerHost.userid);
+		
+				// tell both that the game is ready to start
+				// clients will reset their positions in this case.
+				sessionState.playerClient.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
+				sessionState.playerHost.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
+		 
+				//todo: should this flag be honored in server game core? so that the update loop only runs when multiple players are around?
+				sessionState.active = true;
+				return sessionState;
 			}
 		}
 
@@ -126,21 +140,14 @@ class GameManager {
 	createGame (client) {
 
 		//Create a new state object to manage a game session
-		var sessionState = {
-			id : token('give-me-a-place-name'),
-			hostKey: client.userid,
-			playerHost: client,
-			playerClient: null,
-			playerCount: 1
-		};
-
+		let sessionState = new SessionState({
+			hostSocket: client,
+			gamecore: new ServerGameCore(client)
+		});
+		
 		this.sessions[ sessionState.id ] = sessionState;
-
+		
 		this.gameCount++;
-
-		//Create a new game core instance, this actually runs the
-		//game code like collisions and such.
-		sessionState.gamecore = new ServerGameCore( sessionState );
 		
 		//Start updating the game loop on the server
 		sessionState.gamecore.update( Util.epoch() );
@@ -152,26 +159,6 @@ class GameManager {
 		
 		this.log(`SERVER    | player ${client.userid} created session.id ${sessionState.id}`);
 
-		return sessionState;
-	}
-	
-	startGame (sessionState) {
-
-		// a game has 2 players and wants to begin
-		// the host already knows they are hosting,
-		// tell the other client they are joining a game
-		
-		// s=server message, j=you are joining, send them the host id
-		sessionState.playerClient.send('s.j.' + sessionState.playerHost.userid);
-		sessionState.playerClient.sessionState = sessionState;
-
-		// tell both that the game is ready to start
-		// clients will reset their positions in this case.
-		sessionState.playerClient.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
-		sessionState.playerHost.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
- 
-		//todo: should this flag be honored in server game core? so that the update loop only runs when multiple players are around?
-		sessionState.active = true;
 		return sessionState;
 	}
 	
