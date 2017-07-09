@@ -1,5 +1,5 @@
-Util = require('./util');
-Clock = require('./clock');
+Util = require("./util");
+Clock = require("./clock");
 
 /**
  * This is meant to run on both in a nodejs environment and a client web browser.
@@ -12,7 +12,9 @@ Clock = require('./clock');
  * @property {Clock} clock - A local timer for precision on server and client
  * @property {Clock} physicsClock - physics integration values
  * 
- * @summary the clientSide game loop
+ * @property {number} playerspeed - TEMP - a value that is used to manage the movespeed of players
+ * 
+ * @summary - shared math functions and update logic
  */
 class GameCore {
 

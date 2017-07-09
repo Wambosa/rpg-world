@@ -1,11 +1,11 @@
 "use strict";
 
-const http = require('http');
-const io = require('socket.io');
-const express = require('express');
-const token = require('./server/nameGenerator');
-const GameManager = require('./server/gameManager.js');
-const WebSocketMessage = require('./common/webSocketMessage');
+const http = require("http");
+const io = require("socket.io");
+const express = require("express");
+const token = require("./server/nameGenerator");
+const GameManager = require("./server/gameManager.js");
+const WebSocketMessage = require("./common/webSocketMessage");
 
 
 const gameport = 8081;
@@ -23,12 +23,12 @@ function main() {
 	console.log(`EXPRESS   | LISTEN: ${gameport}`);
 	
 	//note: default path; forward the / path to index.html automagically
-	app.get( '/', function( req, res ) {
-		res.sendFile( '/index.html' , { root:__dirname });
+	app.get( "/", function( req, res ) {
+		res.sendFile( "/index.html" , { root:__dirname });
 	});
 	
 	//note: listen for requests on /*, any file from the server root
-	app.get( '/*' , ( req, res, next ) => {
+	app.get( "/*" , ( req, res, next ) => {
 
 		//note: current file requested
 		let file = req.params[0];
@@ -48,25 +48,23 @@ function main() {
 		artificialLag: 0
 	});
 
-	sio.on('connection', (client) => {
+	sio.on("connection", (client) => {
 		
 		//note: Generate a new UUID, and store this on this(client) socket/connection
 		client.userid = token();
 
 		//note: tell the player they connected, giving them their id
-		client.emit('onconnected', { id: client.userid } );
+		client.emit("onconnected", { id: client.userid } );
 
 		//now we can find them a game to play with someone.
 		//if no game exists with someone waiting, they create one and wait.
 		
-		//todo: this needs to return new properties that are to be attached to client for clarity
-		// the mothod is currently mutating client
 		let sessionState = gameManager.findGame(client);
 
 		console.log(`SOCKET.IO | CONNECTED: ${client.userid}`);
 		
 		//note: callback when client sends a message into the stream
-		client.on('message', (m) => {
+		client.on("message", (m) => {
 
 			gameManager.onMessage(new WebSocketMessage({
 				sessionState: sessionState,
@@ -76,7 +74,7 @@ function main() {
 		});
 		
 		//note: When this client disconnects
-		client.on('disconnect', () => {
+		client.on("disconnect", () => {
 
 			console.log(`SOCKET.IO | game session ${sessionState.id} has dropped player ${client.userid}`);
 			

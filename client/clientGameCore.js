@@ -8,6 +8,7 @@ var RPG = RPG || {}; //note: temporarily here
  * ClientGameCore
  * @implements {GameCore}
  * @property {Object} players - a poorly designed dictionary of Player references. needs refactor
+ * @property {Clock} physicsClock - physics integration values
  * @property {Object} ghosts - dictionary. debug visual aid. represents the server location of the two players. it is unclear why there are three ghosts with only two players
  * @property {THREEx.KeyboardState} keyboard - 3rd party input management object
  * @property {Object?} serverUpdates - A list of recent server updates we interpolate across. This is the buffer that is the driving factor for our networking
@@ -155,23 +156,23 @@ class ClientGameCore extends GameCore {
 			this.processNetUpdates();
 	
 		//Now they should have updated, we can draw the entity
-		this.players.other.draw();
+		this.players.other.draw(this.ctx);
 	
 		//When we are doing client side prediction, we smooth out our position
 		//across frames using local input states we have stored.
 		this.updateLocalPosition();
 	
 		//And then we finally draw
-		this.players.self.draw();
+		this.players.self.draw(this.ctx);
 	
 			//and these
 		if(this.showDestPos && !this.naiveApproach)
-			this.ghosts.posOther.draw();
+			this.ghosts.posOther.draw(this.ctx);
 	
 			//and lastly draw these
 		if(this.showServerPos && !this.naiveApproach) {
-			this.ghosts.serverPosSelf.draw();
-			this.ghosts.serverPosOther.draw();
+			this.ghosts.serverPosSelf.draw(this.ctx);
+			this.ghosts.serverPosOther.draw(this.ctx);
 		}
 	
 		//Work out the fps average
@@ -519,8 +520,9 @@ class ClientGameCore extends GameCore {
 			
 			localPlayer.oldState.pos = Util.copy( localPlayer.curState.pos );
 			
-			let nd = this.processInput(localPlayer);
-			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, nd);
+			//note: this prevents moving more than one step per frame, yet also may aid in te 144 spike bug
+			let direction = this.processInput(localPlayer);
+			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, direction);
 			localPlayer.stateTime = this.clock.time;
 		}
 	}
@@ -612,7 +614,8 @@ class ClientGameCore extends GameCore {
 		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
 		var playerClient = this.players.self.host ?  this.players.other : this.players.self;
 	
-			//Host always spawns at the top left.
+		// todo: this starting position logic is located in a couple of locations. 
+		// need to clean up. (Host always spawns at the top left.)
 		playerHost.pos = { x:20,y:20 };
 		playerClient.pos = { x:500, y:200 };
 	

@@ -12,7 +12,6 @@ require('./util');
  * it would be better if the internal times were proteced and only able to be get and set with checks.
  * already had a NaN break the entire game. this clock class is critical to the system
  * @class
- * @type {Object}
  * @property {number} time - the local timer
  * @property {number} deltaTime - the local timer delta
  * @property {number} lastDeltaTime - the local timer last frame time

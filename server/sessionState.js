@@ -41,10 +41,6 @@ class SessionState {
 		
 		return ++this.playerCount;
 	}
-	
-	toString() {
-		return `MESSAGE   | ${this.client.userid} | ${this.message}`;
-	}
 }
 
 

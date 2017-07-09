@@ -1,14 +1,24 @@
 const Util = require("../common/util");
 const Clock = require("../common/clock");
-const Player = require('../common/player');
-const GameCore = require('../common/gameCore');
+const Player = require("../common/player");
+const GameCore = require("../common/gameCore");
 
+
+/**
+ * This is meant to run on nodejs backend.
+ * One of these processes will be run per game.
+ * This class is responsible for syncronizing clients
+ * @class
+ * ServerGameCore
+ * @implements {GameCore}
+ * @property {Object} players - a poorly designed dictionary of Player references. needs refactor
+ * @property {Clock} physicsClock - physics integration values
+ * @summary the serverside version of the game
+ */
 class ServerGameCore extends GameCore {
 	
 	constructor(playerHost, playerClient) {
 		super();
-		
-		this.server = true;
 		
 		// 45 ms
 		let frameTime = 45;
@@ -22,7 +32,7 @@ class ServerGameCore extends GameCore {
 		};
 	
 		window.cancelAnimationFrame = function (id) {
-			clearTimeout(id); 
+			clearTimeout(id);
 		};
 		
 		this.players = {
@@ -38,12 +48,12 @@ class ServerGameCore extends GameCore {
 		});
 	}
 	
-	update(t){
+	update(t) {
 		super.update(t);
 		
 		this.serverUpdate();
 		
-		this.postUpdate();
+		super.postUpdate();
 	}
 
 	/*
@@ -80,7 +90,7 @@ class ServerGameCore extends GameCore {
 	
 	//Makes sure things run smoothly and notifies clients of changes
 	//on the server side
-	serverUpdate(){
+	serverUpdate() {
 	
 			//Update the state of our local clock to match the timer
 		this.serverTime = this.clock.time;

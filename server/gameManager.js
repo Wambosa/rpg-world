@@ -177,7 +177,7 @@ class GameManager {
 				if(sessionState.playerCount > 1) {
 	
 					//send the players the message the game is ending
-					if(userid == sessionState.playerHost.userid) {
+					if(userid == sessionState.hostKey) {
 	
 						//the host left, oh snap. Lets try join another game
 						if(sessionState.playerClient) {
