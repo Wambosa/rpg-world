@@ -40,7 +40,7 @@ class ServerGameCore extends GameCore {
 			other : new Player()
 		};
 
-		this.players.self.pos = { x:20,y:20 };
+		this.players.self.pos = { x:20, y:20 };
 		
 		this.physicsClock = new Clock({
 			interval: 15,
@@ -51,7 +51,27 @@ class ServerGameCore extends GameCore {
 	update(t) {
 		super.update(t);
 		
-		this.serverUpdate();
+			//Update the state of our local clock to match the timer
+		this.serverTime = this.clock.time;
+	
+			//Make a snapshot of the current state, for updating the clients
+		this.laststate = {
+			hp  : this.players.self.pos,                //'host position', the game creators position
+			cp  : this.players.other.pos,               //'client position', the person that joined, their position
+			his : this.players.self.lastInputSeq,     //'host input sequence', the last input we processed for the host
+			cis : this.players.other.lastInputSeq,    //'client input sequence', the last input we processed for the client
+			t   : this.serverTime                      // our current local time on the server
+		};
+	
+			//Send the snapshot to the 'host' player
+		if(this.players.self.socketClient) {
+			this.players.self.socketClient.emit( 'onserverupdate', this.laststate );
+		}
+	
+			//Send the snapshot to the 'client' player
+		if(this.players.other.socketClient) {
+			this.players.other.socketClient.emit( 'onserverupdate', this.laststate );
+		}
 		
 		super.postUpdate();
 	}
@@ -85,34 +105,6 @@ class ServerGameCore extends GameCore {
 	
 		p1.inputs = []; //we have used the input buffer, so remove this
 		p2.inputs = []; //we have used the input buffer, so remove this
-	
-	}
-	
-	//Makes sure things run smoothly and notifies clients of changes
-	//on the server side
-	serverUpdate() {
-	
-			//Update the state of our local clock to match the timer
-		this.serverTime = this.clock.time;
-	
-			//Make a snapshot of the current state, for updating the clients
-		this.laststate = {
-			hp  : this.players.self.pos,                //'host position', the game creators position
-			cp  : this.players.other.pos,               //'client position', the person that joined, their position
-			his : this.players.self.lastInputSeq,     //'host input sequence', the last input we processed for the host
-			cis : this.players.other.lastInputSeq,    //'client input sequence', the last input we processed for the client
-			t   : this.serverTime                      // our current local time on the server
-		};
-	
-			//Send the snapshot to the 'host' player
-		if(this.players.self.socketClient) {
-			this.players.self.socketClient.emit( 'onserverupdate', this.laststate );
-		}
-	
-			//Send the snapshot to the 'client' player
-		if(this.players.other.socketClient) {
-			this.players.other.socketClient.emit( 'onserverupdate', this.laststate );
-		}
 	
 	}
 	

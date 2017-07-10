@@ -430,10 +430,10 @@ class ClientGameCore extends GameCore {
 	 * the other is a joined in client, so we name these host and client to ensure
 	 * the positions we get from the server are mapped onto the correct local sprites
 	 * 
-	 * onServerUpdateRecieved
+	 * onServerAuthoritativeUpdate
 	 * @returns {undefined}
 	 */
-	onServerUpdateRecieved(data) {
+	onServerAuthoritativeUpdate(data) {
 	
 		//todo: this needs to be a dict lookup
 		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
@@ -792,15 +792,15 @@ class ClientGameCore extends GameCore {
 		
 		let socket = io.connect();
 
-		socket.on('connect', function(){
-			this.players.self.state = 'connecting';
+		socket.on('connect', function() {
+			this.players.self.state = 'Finding Game Session...';
 		}.bind(this));
 
 		//Sent when we are disconnected (network, server down, etc)
 		socket.on('disconnect', this.onDisconnect.bind(this));
 		
 		//Sent each tick of the server simulation. This is our authoritive update
-		socket.on('onserverupdate', this.onServerUpdateRecieved.bind(this));
+		socket.on('onserverupdate', this.onServerAuthoritativeUpdate.bind(this));
 		
 		//Handle when we connect to the server, showing state and storing id's.
 		socket.on('onconnected', this.onConnected.bind(this));

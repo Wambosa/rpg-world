@@ -56,7 +56,6 @@ class GameManager {
 		// note: i really hate this
 		let otherClient = client.userid === sessionState.hostKey ? sessionState.playerClient : sessionState.playerHost;
 	
-		//todo: convert slices into named params in websocketmessage
 		if(type == 'input')
 			this.onInput(sessionState.gamecore, client, slices);
 		else if(type == 'player')
@@ -103,14 +102,14 @@ class GameManager {
 			let sessionState = this.sessions[sessionId];
 
 			//join the game if not full
-			if(sessionState.players.length < 2) {
+			if(sessionState.clients.length < 2) {
 
 				//someone wants us to join!
 				joinedAGame = true;
 				
 				//increase the player count and store
 				//the player as the client of this game
-				sessionState.addPlayer(client);
+				sessionState.addClient(client);
 
 				//start running the game on the server,
 				//which will tell them to respawn/start
@@ -170,9 +169,7 @@ class GameManager {
 	
 				//stop the game updates immediate
 				sessionState.gamecore.stopUpdate();
-				clearInterval(sessionState.gamecore.clock.intervalId);
-				clearInterval(sessionState.gamecore.physicsClock.intervalId);
-	
+				
 				//if the game has two players, the one is leaving
 				if(sessionState.playerCount > 1) {
 	

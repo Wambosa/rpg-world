@@ -41,7 +41,7 @@ class GameCore {
 		this.lastframetime = t;
 	}
 	
-	postUpdate(){
+	postUpdate() {
 		//schedule the next update
 		this.updateid = window.requestAnimationFrame( this.update.bind(this), this.viewport );
 	}
@@ -161,7 +161,13 @@ class GameCore {
 	
 	//For the server, we need to cancel the setTimeout that the polyfill creates
 	stopUpdate() {
+		
 		window.cancelAnimationFrame(this.updateid);
+		
+		this.clock.stop();
+		
+		if(this.physicsClock)
+			this.physicsClock.stop();
 	}
 	
 	//Simple linear interpolation

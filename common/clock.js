@@ -10,7 +10,8 @@ require('./util');
  * It may be handy in the future to allow for pausing. 
  * If that is the case, we will need a way to pause the main loop and the clock intervals
  * it would be better if the internal times were proteced and only able to be get and set with checks.
- * already had a NaN break the entire game. this clock class is critical to the system
+ * already had a NaN break the entire game. this clock class is critical to the system.
+ * todo: might need a way in the future to restart the interva with memorized interval and func
  * @class
  * @property {number} time - the local timer
  * @property {number} deltaTime - the local timer delta
