@@ -54,17 +54,17 @@ class ClientGameCore extends GameCore {
 		}
 		
 		this.players = {
-			self : new Player({gameInstance: this}),
-			other : new Player({gameInstance: this})
+			self : new Player(),
+			other : new Player()
 		};
 
 		this.ghosts = {
 			//Our ghost position on the server
-			serverPosSelf : new Player({gameInstance: this}),
+			serverPosSelf : new Player(),
 			//The other players server position as we receive it
-			serverPosOther : new Player({gameInstance: this}),
+			serverPosOther : new Player(),
 			//The other players ghost destination position (the lerp)
-			posOther : new Player({gameInstance: this})
+			posOther : new Player()
 		};
 		this.ghosts.posOther.state = 'destPos';
 		this.ghosts.posOther.infoColor = 'rgba(255,255,255,0.1)';

@@ -20,9 +20,9 @@ require('./util');
  */
 class Player {
 	
-	constructor(params) {
+	constructor(socketClient) {
 
-		this.socketClient = params.socketClient;
+		this.socketClient = socketClient;
 	
 		this.pos = { x: 1, y:1 };
 		this.size = { x:16, y:16, hx:8, hy:8 };
@@ -40,7 +40,7 @@ class Player {
 		this.inputs = [];
 	
 		//The world bounds we are confined to
-		let boundry = params.boundry || { x: 720, y: 480 };
+		let boundry = { x: 720, y: 480 };
 		
 		this.posLimits = {
 			xMin: this.size.hx,

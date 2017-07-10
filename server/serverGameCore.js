@@ -17,7 +17,7 @@ const GameCore = require("../common/gameCore");
  */
 class ServerGameCore extends GameCore {
 	
-	constructor(playerHost, playerClient) {
+	constructor(playerHost) {
 		super();
 		
 		// 45 ms
@@ -36,11 +36,11 @@ class ServerGameCore extends GameCore {
 		};
 		
 		this.players = {
-			self : new Player({gameInstance: this, socketClient: playerHost}),
-			other : new Player({gameInstance: this, socketClient: undefined})
+			self : new Player(playerHost),
+			other : new Player()
 		};
 
-		this.players.self.pos = {x:20,y:20};
+		this.players.self.pos = { x:20,y:20 };
 		
 		this.physicsClock = new Clock({
 			interval: 15,
