@@ -1,5 +1,5 @@
 const token = require("./nameGenerator");
-const ServerGameCore = require("./serverGameCore");
+const message = require("../common/message");
 
 /**
  * gameManager creates one of these when a new session is established.
@@ -30,16 +30,52 @@ class SessionState {
 	}
 	
 	//this gets a refactor once the playerhost and playerclient concept are eliminated
-	addClient(p) {
+	addClient(c) {
 		
-		this.clients.push(p);
+		this.clients.push(c);
 		
 		if(this.clients.length > 1) {
-			this.playerClient = p;
-			this.gamecore.players.other.socketClient = p;
+			this.playerClient = c
+			this.gamecore.addPlayer(c);
 		}
 		
 		return ++this.playerCount;
+	}
+	
+	dropClient(clientId) {
+		
+		let quitter = this.clients.find((c) => {
+			return c.userid = clientId;
+		});
+		
+		if(quitter) {
+			quitter.send("s.e");
+			return true;
+		}
+		
+		return false;
+	}
+	
+	broadcast(message) {
+		
+		this.clients.forEach((c) => {
+			c.send(message.serialize());
+		});
+		
+		return this.clients.length;
+	}
+	
+	// only the host can kill the game
+	killSession() {
+		
+		this.gamecore.stopUpdate();
+		
+		this.broadcast(new message.endGame());
+		
+		//return the orphaned players
+		return this.clients.filter((c) => {
+			return c.userid !== this.hostKey;
+		});
 	}
 }
 

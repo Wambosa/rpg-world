@@ -37,6 +37,9 @@ _can view the incomplete demo[here](http://multiplayer-playground-wambosa.c9user
 
 ### future
 _the multiplayer code works, and needs a total makeover. some starting points are here. although there are many more_
+
+- refactor the client.userid to clientId
+
 - bug: when the client leaves, the game is reset
 - change payload delimiter from "." to "|" (pipe)
 	- will be able to avoid using common symbols like periods, commas, or underscores

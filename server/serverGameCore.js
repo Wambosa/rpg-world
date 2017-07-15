@@ -11,6 +11,7 @@ const GameCore = require("../common/gameCore");
  * @class
  * ServerGameCore
  * @implements {GameCore}
+ * @property {Object} session - todo: pass in the SessionState so that we can access the convienence methods like broadcast and other things
  * @property {Object} players - a poorly designed dictionary of Player references. needs refactor
  * @property {Clock} physicsClock - physics integration values
  * @summary the serverside version of the game
@@ -82,6 +83,7 @@ class ServerGameCore extends GameCore {
 		and usually start with server_* to make things clearer.
 	*/
 	
+	//todo: be replaced with phaser physics math
 	//Updated at 15ms , simulates the world state
 	serverUpdatePhysics() {
 	
@@ -105,7 +107,6 @@ class ServerGameCore extends GameCore {
 	
 		p1.inputs = []; //we have used the input buffer, so remove this
 		p2.inputs = []; //we have used the input buffer, so remove this
-	
 	}
 	
 	handleServerInput(client, input, inputTime, inputSeq) {
@@ -119,6 +120,9 @@ class ServerGameCore extends GameCore {
 		player.inputs.push({inputs:input, time:inputTime, seq:inputSeq});
 	}
 
+	addPlayer(c) {
+		this.players.other.socketClient = c;
+	}
 }
 
 module.exports = ServerGameCore;
