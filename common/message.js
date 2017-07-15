@@ -22,7 +22,7 @@ class BaseMessage {
 		return `${this.hint}|${this.data.join(",")}`;
 	}
 	
-	deserialize(raw) {
+	static deserialize(raw) {
 		return new BaseMessage(raw);
 	}
 }

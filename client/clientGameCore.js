@@ -235,16 +235,9 @@ class ClientGameCore extends GameCore {
 				seq : this.inputSeq
 			});
 			
-			//Send the packet of information to the server.
-			//The input packets are labelled with an 'i' in front.
-			let serverPacket = new ServerPacket({
-				type: 'i',
-				input: input,
-				timestamp: this.clock.time,
-				sequenceId: this.inputSeq
-			});
+			let m = new ClientInput(input, this.clock.time, this.inputSeq);
 			
-			this.socket.send(serverPacket.toDataTransferObject());
+			this.socket.send(m.serialize());
 	
 			//Return the direction if needed
 			return this.physicsMovementVectorFromDirection(xDir, yDir);

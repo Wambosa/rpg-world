@@ -51,14 +51,17 @@ class GameManager {
 		
 		let { sessionState, client, message, type } = webSocketMessage;
 	
+		if(type == 'input') {
+			this.onInput(sessionState.gamecore, client, message);
+			return;
+		}
+	
 		let slices = message.split('.');
 	
 		// note: i really hate this
 		let otherClient = client.userid === sessionState.hostKey ? sessionState.playerClient : sessionState.playerHost;
 	
-		if(type == 'input')
-			this.onInput(sessionState.gamecore, client, slices);
-		else if(type == 'player')
+		if(type == 'player')
 			client.send('s.p.' + slices[1]);
 		else if(type == 'color')
 			if(otherClient)
@@ -67,19 +70,15 @@ class GameManager {
 			this.artificialLag = parseFloat(slices[1]);
 	}
 	
-	onInput (gamecore, client, slices) {
-		// The input commands come in like u-l,
-		// so we split them up into separate commands,
-		// and then update the players
-		var inputCommands = slices[1].split('-');
-		var inputTime = slices[2].replace('-','.');
-		var inputSeq = slices[3];
+	onInput (gamecore, client, clientInput) {
 
+		let { input, clockTime, sequence } = clientInput;
+		
 		// the client should be in a game, so
 		// we can tell that game to handle the input
 		if(client && gamecore) {
-			
-			gamecore.handleServerInput(client, inputCommands, inputTime, inputSeq);
+			//rename this to handleClientInput because it is from the clients
+			gamecore.handleServerInput(client, input, clockTime, sequence);
 		}else{
 			console.log(`WARN?     | client:${!!client} gamecore: ${!!gamecore}`);
 		}

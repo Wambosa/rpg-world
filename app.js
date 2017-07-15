@@ -6,6 +6,7 @@ const express = require("express");
 const token = require("./server/nameGenerator");
 const GameManager = require("./server/gameManager.js");
 const WebSocketMessage = require("./common/webSocketMessage");
+const message = require("./common/message");
 
 
 const gameport = 8081;
@@ -66,11 +67,21 @@ function main() {
 		//note: callback when client sends a message into the stream
 		client.on("message", (m) => {
 
-			gameManager.onMessage(new WebSocketMessage({
-				sessionState: sessionState,
-				client: client,
-				message: m
-			}));
+			let test = message.deserialize(m);
+			
+			if(test instanceof message.clientInput)
+				gameManager.onMessage({
+					sessionState: sessionState,
+					client: client,
+					message: test,
+					type: "input"
+				})
+			else
+				gameManager.onMessage(new WebSocketMessage({
+					sessionState: sessionState,
+					client: client,
+					message: m
+				}));
 		});
 		
 		//note: When this client disconnects
