@@ -13,12 +13,17 @@ const todo = {
 
 class BaseMessage {
 	
-	constructor(data) {
+	constructor() {
 		this.hint = "b";
+		this.data = arguments;
 	}
 	
 	serialize() {
-		return this.hint;
+		return `${this.hint}|${this.data.join(",")}`;
+	}
+	
+	deserialize(raw) {
+		return new BaseMessage(raw);
 	}
 }
 
@@ -26,7 +31,7 @@ class KillGame extends BaseMessage {
 	
 	constructor(reason) {
 		super();
-		this.hint = `${SERVER_MESSAGE_HINT}|${KILL_GAME_HINT}`;
+		this.hint = `${SERVER_MESSAGE_HINT}.${KILL_GAME_HINT}`;
 		this.reason = reason;
 	}
 }
@@ -39,7 +44,7 @@ class ClientInput extends BaseMessage {
 		this.input = input;
 		this.sequence = sequence;
 		this.clockTime = clockTime;
-		this.hint = `${CLIENT_MESSAGE_HINT}|${INPUT_HINT}`;
+		this.hint = `${CLIENT_MESSAGE_HINT}.${INPUT_HINT}`;
 	}
 	
 	serialize() {
@@ -58,8 +63,8 @@ class ClientInput extends BaseMessage {
 }
 
 const CLASS_MAP = {
-	"s|k": KillGame,
-	"c|i": ClientInput,
+	"s.k": KillGame,
+	"c.i": ClientInput,
 };
 
 module.exports = {
