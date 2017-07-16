@@ -56,6 +56,10 @@ class SessionState {
 		return false;
 	}
 	
+	findClient(id) {
+		return this.clients.find( c => c.userid === id);
+	}
+	
 	broadcast(message) {
 		
 		this.clients.forEach((c) => {

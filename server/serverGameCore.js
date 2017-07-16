@@ -109,15 +109,19 @@ class ServerGameCore extends GameCore {
 		p2.inputs = []; //we have used the input buffer, so remove this
 	}
 	
-	handleServerInput(client, input, inputTime, inputSeq) {
+	stashClientInput(client, clientInput) {
 	
-			//Fetch which client this refers to out of the two
+		//Fetch which client this refers to out of the two
 		let player = (client.userid == this.players.self.socketClient.userid)
 			? this.players.self 
 			: this.players.other;
 	
 		//Store the input on the player instance for processing in the physics loop
-		player.inputs.push({inputs:input, time:inputTime, seq:inputSeq});
+		player.inputs.push({
+			inputs: clientInput.input, 
+			time: clientInput.clockTime, 
+			seq: clientInput.sequence
+		});
 	}
 
 	addPlayer(c) {

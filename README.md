@@ -38,6 +38,10 @@ _can view the incomplete demo[here](http://multiplayer-playground-wambosa.c9user
 ### future
 _the multiplayer code works, and needs a total makeover. some starting points are here. although there are many more_
 
+- do a generic message serialize based on built in arguments.front(this.hint), JSON.parse and  + [].join)("|")
+
+- todo: artificalLag is global to all sessions! needs to be locked into a single session for a single user!
+
 - refactor the client.userid to clientId
 
 - bug: when the client leaves, the game is reset

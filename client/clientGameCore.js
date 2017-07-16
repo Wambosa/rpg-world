@@ -532,8 +532,8 @@ class ClientGameCore extends GameCore {
 		setInterval(function(){
 		
 			this.lastPingTime = Util.epoch() - this.fakeLag;
-			this.socket.send('p.' + (this.lastPingTime) );
-		
+			let ping = new Ping(this.lastPingTime);
+			this.socket.send(ping.serialize());		
 		}.bind(this), 1000);
 	}
 
@@ -558,7 +558,8 @@ class ClientGameCore extends GameCore {
 			this.colorcontrol.onChange(function(value) {
 				this.players.self.color = value;
 				localStorage.setItem('color', value);
-				this.socket.send('c.' + value);
+				let config = new ClientConfiguration({color: value})
+				this.socket.send(config.serialize());
 			}.bind(this));
 	
 			_playersettings.open();
@@ -586,7 +587,8 @@ class ClientGameCore extends GameCore {
 				//When adding fake lag, we need to tell the server about it.
 			var lagControl = _consettings.add(this, 'fakeLag').step(0.001).listen();
 			lagControl.onChange(function(value){
-				this.socket.send('l.' + value);
+				let config = new ClientConfiguration({lag: value});
+				this.socket.send(config.serialize());
 			}.bind(this));
 	
 			_consettings.open();
@@ -625,9 +627,9 @@ class ClientGameCore extends GameCore {
 	
 	}
 	
-	onReadyGame(data) {
+	onReadyGame(resetMessage) {
 	
-		var serverTime = parseFloat(data.replace('-','.'));
+		var serverTime = resetMessage.clockTime;
 	
 		var playerHost = this.players.self.host ?  this.players.self : this.players.other;
 		var playerClient = this.players.self.host ?  this.players.other : this.players.self;
@@ -646,37 +648,42 @@ class ClientGameCore extends GameCore {
 		this.players.self.state = `${this.players.self.state}: ${this.players.self.id}`;
 		this.players.other.state = `${this.players.other.state}: ${this.players.other.id}`;
 		
-			//Make sure colors are synced up
-		 this.socket.send('c.' + this.players.self.color);
-	
+		//Make sure colors are synced up
+		let config = new ClientConfiguration({color: this.players.self.color});
+		this.socket.send(config.serialize());
+		// todo: seems like the reset position would be here (planning on removing that logic anyways)
 	}
 	
-	onJoinGame(data) {
+	onJoinGame(joinGameMessage) {
 	
 			//We are not the host
 		this.players.self.host = false;
 			//Update the local state
 		this.players.self.state = 'connected.joined.waiting';
 		this.players.self.infoColor = '#00bb00';
-	
-			//Make sure the positions match servers and other clients
+		
+		//todo: set the id of the other player
+		
+		//Make sure the positions match servers and other clients
 		this.resetPositions();
 	
 	}
 	
-	onHostGame(data) {
+	onHostGame(hostPromotion) {
 	
-			//The server sends the time when asking us to host, but it should be a new game.
-			//so the value will be really small anyway (15 or 16ms)
-		var serverTime = parseFloat(data.replace('-','.'));
+		//The server sends the time when asking us to host, but it should be a new game.
+		//so the value will be really small anyway (15 or 16ms)
+		
+		//should try parse in the deserialize
+		let serverTime = parseFloat(hostPromotion.clockTime);
 	
-			//Get an estimate of the current time on the server
+		//Get an estimate of the current time on the server
 		this.clock.time = serverTime + this.netLatency;
 	
-			//Set the flag that we are hosting, this helps us position respawns correctly
+		//Set the flag that we are hosting, this helps us position respawns correctly
 		this.players.self.host = true;
 	
-			//Update debugging information to display state
+		//Update debugging information to display state
 		this.players.self.state = 'hosting.waiting for a player';
 		this.players.self.infoColor = '#cc0000';
 	
@@ -693,67 +700,54 @@ class ClientGameCore extends GameCore {
 	 * @returns {undefined}
 	 * @summary the server sends us back our identity in the serverside game
 	 */
-	onConnected(data) {
-		this.players.self.id = data.id;
+	onConnected(welcomePack) {
+		this.players.self.id = welcomePack.id;
 		this.players.self.infoColor = '#cc0000';
 		this.players.self.state = 'connected';
 		this.players.self.online = true;
 	}
 	
-	onOtherClientColorChange(data) {
+	onOtherClientColorChange(clientConfiguration) {
 	
-		this.players.other.color = data;
+		this.players.other.color = clientConfiguration.color;
 	}
 	
-	onPing(data) {
-	
-		this.netPing = Util.epoch() - parseFloat( data );
+	onPing(ping) {
+		this.netPing = Util.epoch() - parseFloat( ping.clockTime );
 		this.netLatency = this.netPing/2;
 	}
 	
 	/**
 	 * the handler for messages in the stream.
 	 * messages will fork here after being parsed out of compact form
-	 * onNetMessage
+	 * onMessage
 	 * @returns {undefined}
 	 * @summary handler for message event.
 	 */
-	onNetMessage(data) {
+	onMessage(raw) {
 	
-		//todo: use a kind of WebSocketMessage
+		let slices = raw.split("|");
+		let hint = slices[0];
 	
-		var commands = data.split('.');
-		var command = commands[0];
-		var subcommand = commands[1] || null;
-		var commanddata = commands[2] || null;
-	
-		//todo: WWWHHHHHHHYYYY!!!!!!!!??????
-		switch(command) {
-			case 's': //server message
-	
-				switch(subcommand) {
-	
-					case 'h' : //host a game requested
-						this.onHostGame(commanddata); break;
-	
-					case 'j' : //join a game requested
-						this.onJoinGame(commanddata); break;
-	
-					case 'r' : //ready a game requested
-						this.onReadyGame(commanddata); break;
-	
-					case 'e' : //end game requested
-						this.onDisconnect(commanddata); break;
-	
-					case 'p' : //server ping
-						this.onPing(commanddata); break;
-	
-					case 'c' : //other player changed colors
-						this.onOtherClientColorChange(commanddata); break;
+		switch(hint) {
+			
+			//note: host a game requested
+			case "s.h": this.onHostGame( HostPromotion.deserialize(raw) ); break;
 
-				}
-	
-			break;
+			//note: join a game requested
+			case "s.j": this.onJoinGame( ClientJoin.deserialize(raw) ); break;
+
+			//note: ready a game requested
+			case "s.r": this.onReadyGame( TimeMessage.deserialize(raw) ); break;
+			
+			//note: end game requested
+			case "s.e": this.onDisconnect( KillGame.deserialize(raw) ); break;
+
+			//note: server response to your ping
+			case "s.p": this.onPing( Ping.deserialize(raw) ); break;
+
+			//note: other player changed colors
+			case "c.c": this.onOtherClientColorChange( ClientConfiguration.deserialize(raw) ); break;
 		}
 	}
 	
@@ -764,7 +758,9 @@ class ClientGameCore extends GameCore {
 	 * onDisconnect
 	 * @returns {undefined}
 	 */
-	onDisconnect(data) {
+	onDisconnect(killGameMessage) {
+	
+		// todo: can tell the player why the game ended
 	
 		this.players.self.infoColor = 'rgba(255,255,255,0.1)';
 		this.players.self.state = 'not-connected';
@@ -802,7 +798,7 @@ class ClientGameCore extends GameCore {
 		socket.on('error', this.onDisconnect.bind(this));
 		
 		//On message from the server, we parse the commands and send it to the handlers
-		socket.on('message', this.onNetMessage.bind(this));
+		socket.on('message', this.onMessage.bind(this));
 		
 		return socket;
 	}

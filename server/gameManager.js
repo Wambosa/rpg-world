@@ -2,9 +2,9 @@
 
 const Util = require("../common/util");
 const token = require("./nameGenerator");
+const message = require("../common/message");
 const SessionState = require("./sessionState.js");
 const ServerGameCore = require("./serverGameCore.js");
-const WebSocketMessage = require("../common/webSocketMessage");
 
 
 //note: polyfill browser environment
@@ -18,6 +18,7 @@ class GameManager {
 
 		this.verbose = params.verbose || true;
 		
+		//todo: this is global to all sessions! needs to be locked into a single session for a single user!
 		this.artificialLag = params.artificialLag || 0;
 		
 		this.sessions = {};
@@ -31,56 +32,46 @@ class GameManager {
 			console.log.apply(this, arguments);
 	}
 	
-	onMessage(webSocketMessage) {
+	onMessage(sessionStateId, clientId, messageClass) {
+	
+		let sessionState = this.sessions[sessionStateId];
+		let client = sessionState.findClient(clientId);
+			
 	
 		if(!this.artificialLag)
-			return this.messageHandler(webSocketMessage);
+			return this.routeMessage(sessionState, client, messageClass);
 	
 		//note: stash messages for later
-		this.messages.push(webSocketMessage);
+		this.messages.push(messageClass);
 
 		setTimeout(() => {
 		
 			if(this.messages.length)
-				this.messageHandler( this.messages.shift());
+				this.routeMessage(sessionState, client, this.messages.shift());
 				
 		}, this.artificialLag);
 	}
 	
-	messageHandler (webSocketMessage) {
-		
-		let { sessionState, client, message, type } = webSocketMessage;
+	routeMessage (sessionState, client, messageClass) {
 	
-		if(type == 'input') {
-			this.onInput(sessionState.gamecore, client, message);
-			return;
-		}
-	
-		let slices = message.split('.');
-	
-		// note: i really hate this
-		let otherClient = client.userid === sessionState.hostKey ? sessionState.playerClient : sessionState.playerHost;
-	
-		if(type == 'player')
-			client.send('s.p.' + slices[1]);
-		else if(type == 'color')
-			if(otherClient)
-				otherClient.send('s.c.' + slices[1]);
-		else if(type == 'lag')
-			this.artificialLag = parseFloat(slices[1]);
-	}
-	
-	onInput (gamecore, client, clientInput) {
-
-		let { input, clockTime, sequence } = clientInput;
-		
-		// the client should be in a game, so
-		// we can tell that game to handle the input
-		if(client && gamecore) {
-			//rename this to handleClientInput because it is from the clients
-			gamecore.handleServerInput(client, input, clockTime, sequence);
-		}else{
-			console.log(`WARN?     | client:${!!client} gamecore: ${!!gamecore}`);
+		if(messageClass instanceof message.clientInput) {
+			
+			return sessionState.gamecore.stashClientInput(client, messageClass);
+			
+		}else if(messageClass instanceof message.ping) {
+			
+			// note: just send back the ping
+			let roundtripPing = new message.ping(messageClass.clockTime);
+			return client.send(roundtripPing.serialize());
+			
+		}else if(messageClass instanceof message.clientConfiguration) {
+			
+			if(!!messageClass.lag && +messageClass.lag > 0) {
+				this.artificialLag = messageClass.lag;
+				console.warn(`lag was just globally set to ${this.artificialLag} by client ${client.userid}`);
+			}
+			//note: there are not any secrets to worry about, so we can et the clients filter the broadcast
+			return sessionState.broadcast(messageClass);
 		}
 	}
 
@@ -117,16 +108,18 @@ class GameManager {
 				// tell the other client they are joining a game
 				
 				// s=server message, j=you are joining, send them the host id
-				sessionState.playerClient.send('s.j.' + sessionState.playerHost.userid);
+				let clientJoin = new message.clientJoin(sessionState.playerHost.userid);
+				sessionState.playerClient.send(clientJoin.serialize());
 		
 				// tell both that the game is ready to start
 				// clients will reset their positions in this case.
-				sessionState.playerClient.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
-				sessionState.playerHost.send('s.r.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
+				let resetGame = new message.resetGame(sessionState.gamecore.clock.time);
+				sessionState.playerClient.send(resetGame.serialize());
+				sessionState.playerHost.send(resetGame.serialize());
 		 
 				//todo: should this flag be honored in server game core? so that the update loop only runs when multiple players are around?
 				sessionState.active = true;
-				return sessionState;
+				return sessionState.id;
 			}
 		}
 
@@ -151,13 +144,12 @@ class GameManager {
 		sessionState.gamecore.update( Util.epoch() );
 
 		//tell the player that they are now the host
-		//s=server message, h=you are hosting
-
-		client.send('s.h.'+ String(sessionState.gamecore.clock.time).replace('.','-'));
+		let hostPromotion = new message.hostPromotion(sessionState.gamecore.clock.time);
+		client.send(hostPromotion.serialize());
 		
 		this.log(`SERVER    | player ${client.userid} created session.id ${sessionState.id}`);
 
-		return sessionState;
+		return sessionState.id;
 	}
 	
 	endGame (sessionId, userid) {
@@ -178,7 +170,8 @@ class GameManager {
 						//the host left, oh snap. Lets try join another game
 						if(sessionState.playerClient) {
 							//tell them the game is over
-							sessionState.playerClient.send('s.e');
+							let endGame = message.endGame();
+							sessionState.playerClient.send(endGame.serialize());
 							//now look for/create a new game.
 							this.findGame(sessionState.playerClient);
 						}
@@ -187,7 +180,8 @@ class GameManager {
 						//the other player left, we were hosting
 						if(sessionState.playerHost) {
 							//tell the client the game is ended
-							sessionState.playerHost.send('s.e');
+							let endGame = message.endGame();
+							sessionState.playerHost.send(endGame.serialize());
 							//i am no longer hosting, this game is going down
 							sessionState.playerHost.hosting = false;
 							//now look for/create a new game.
