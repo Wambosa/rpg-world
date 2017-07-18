@@ -19,18 +19,22 @@ class BaseMessage {
 	}
 	
 	serialize() {
-		return `${this.hint}|${this.data.join(",")}`;
+		return `${this.hint}|${JSON.stringify(this.data)}`;
 	}
 	
 	static deserialize(raw) {
 		return new BaseMessage(raw);
+	}
+	
+	toString() {
+		return this.serialize();
 	}
 }
 
 class TimeMessage extends BaseMessage {
 	
 	constructor(clockTime) {
-		super();
+		super(clockTime);
 		let source = !!window.process ? SERVER_MESSAGE_HINT : CLIENT_MESSAGE_HINT;
 		
 		this.hint = `${source}.${TIME_HINT}`;
@@ -50,6 +54,7 @@ class TimeMessage extends BaseMessage {
 }
 
 class HostPromotion extends TimeMessage {
+	
 	constructor(serverTime) {
 		super(serverTime);
 		
@@ -84,23 +89,25 @@ class Ping extends TimeMessage {
 }
 
 class ClientJoin extends BaseMessage {
-	constructor(hostId) {
-		super(hostId);
+	
+	//todo: give this joinData some more thought
+	constructor(joinData) {
+		super(joinData);
 		
 		this.hint = `${SERVER_MESSAGE_HINT}.${JOIN_GAME_HINT}`;
-		this.hostId = hostId;
+		this.joinData = joinData;
 	}
 	
 	serialize() {
-		return `${this.hint}|${this.hostId}`;
+		return `${this.hint}|${this.joinData}`;
 	}
 	
 	static deserialize(raw) {
 		
 		let slices = raw.split("|");
-		let hostId = slices[1];
+		let joinData = slices[1];
 		
-		return new ClientJoin(hostId);
+		return new ClientJoin(joinData);
 	}
 }
 
@@ -135,13 +142,14 @@ class ClientConfiguration extends BaseMessage {
 	constructor(params) {
 		super(params);
 		
+		this.id = params.id;
 		this.lag = params.lag;
 		this.color = params.color;
 		this.hint = `${CLIENT_MESSAGE_HINT}.${CONFIG_HINT}`;
 	}
 	
 	serialize() {
-		return `${this.hint}|${this.color}|${this.lag}`;
+		return `${this.hint}|${this.id}|${this.color}|${this.lag}`;
 	}
 	
 	static deserialize(raw) {

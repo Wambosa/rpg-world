@@ -41,7 +41,8 @@ class ServerGameCore extends GameCore {
 			other : new Player()
 		};
 
-		this.players.self.pos = { x:20, y:20 };
+		//this needs to be in a central location. currently managed in both game cores seperately
+		this.players.self.pos = { x:0, y:0 };
 		
 		this.physicsClock = new Clock({
 			interval: 15,

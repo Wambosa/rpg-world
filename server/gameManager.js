@@ -31,6 +31,19 @@ class GameManager {
 		if(this.verbose)
 			console.log.apply(this, arguments);
 	}
+
+	/**
+	 * At present, the host can leave and kill the sessionState before the socket connection is
+	 * cut off. In this small amount of time the other client can send a message up the pipe and
+	 * crash the server. checking that the sessionState is active first
+	 * before trying to process the message prevents this crash
+	 * isSessionActive
+	 * @returns {boolean}
+	 * @summary is the session still alive?
+	 */
+	isSessionActive(sessionId) {
+		return !!this.sessions[sessionId];
+	}
 	
 	onMessage(sessionStateId, clientId, messageClass) {
 	
@@ -68,16 +81,16 @@ class GameManager {
 			
 			if(!!messageClass.lag && +messageClass.lag > 0) {
 				this.artificialLag = messageClass.lag;
-				console.warn(`lag was just globally set to ${this.artificialLag} by client ${client.userid}`);
+				console.warn(`WARN      | lag was just globally set to ${this.artificialLag} by client ${client.userid}`);
 			}
-			//note: there are not any secrets to worry about, so we can et the clients filter the broadcast
-			return sessionState.broadcast(messageClass);
+			//note: there are not any secrets to worry about, so we can let the clients filter the broadcast
+			return sessionState.broadcast(messageClass, client.userid);
 		}
 	}
 
 	findGame (client) {
 
-		this.log(`SERVER    | new client looking for a game. ${this.gameCount} games running`);
+		this.log(`SERVER    | ${client.userid} looking for a game. ${this.gameCount} games running`);
 
 		let joinedAGame = false;
 
@@ -101,6 +114,8 @@ class GameManager {
 				//the player as the client of this game
 				sessionState.addClient(client);
 
+				this.log(`SERVER    | ${client.userid} joined session.id ${sessionState.id}`);
+
 				//start running the game on the server,
 				//which will tell them to respawn/start
 				// a game has 2 players and wants to begin
@@ -110,6 +125,10 @@ class GameManager {
 				// s=server message, j=you are joining, send them the host id
 				let clientJoin = new message.clientJoin(sessionState.playerHost.userid);
 				sessionState.playerClient.send(clientJoin.serialize());
+				
+				//tell the host who the new player is
+				let updateExisting = new message.clientJoin(client.userid);
+				sessionState.playerHost.send(updateExisting.serialize());
 		
 				// tell both that the game is ready to start
 				// clients will reset their positions in this case.
@@ -144,61 +163,34 @@ class GameManager {
 		sessionState.gamecore.update( Util.epoch() );
 
 		//tell the player that they are now the host
-		let hostPromotion = new message.hostPromotion(sessionState.gamecore.clock.time);
+		let hostPromotion = new message.hostPromotion( sessionState.gamecore.clock.time );
 		client.send(hostPromotion.serialize());
 		
-		this.log(`SERVER    | player ${client.userid} created session.id ${sessionState.id}`);
+		this.log(`SERVER    | ${client.userid} created session.id ${sessionState.id}`);
 
 		return sessionState.id;
 	}
 	
-	endGame (sessionId, userid) {
+	killGame (sessionId, userid) {
 	
 			let sessionState = this.sessions[sessionId];
 	
-			if(sessionState) {
-	
-				//stop the game updates immediate
-				sessionState.gamecore.stopUpdate();
-				
-				//if the game has two players, the one is leaving
-				if(sessionState.playerCount > 1) {
-	
-					//send the players the message the game is ending
-					if(userid == sessionState.hostKey) {
-	
-						//the host left, oh snap. Lets try join another game
-						if(sessionState.playerClient) {
-							//tell them the game is over
-							let endGame = message.endGame();
-							sessionState.playerClient.send(endGame.serialize());
-							//now look for/create a new game.
-							this.findGame(sessionState.playerClient);
-						}
-						
-					} else {
-						//the other player left, we were hosting
-						if(sessionState.playerHost) {
-							//tell the client the game is ended
-							let endGame = message.endGame();
-							sessionState.playerHost.send(endGame.serialize());
-							//i am no longer hosting, this game is going down
-							sessionState.playerHost.hosting = false;
-							//now look for/create a new game.
-							this.findGame(sessionState.playerHost);
-						}
-					}
-				}
-	
-				delete this.sessions[sessionId];
-				this.gameCount--;
-	
-				this.log(`SERVER    | game ${sessionId} removed. there are now ${this.gameCount} running `);
-	
-			} else {
-				this.log(`SERVER    | game ${sessionId} was not found!`);
+			if(!sessionState) {
+				this.log(`SERVER    | ${userid} failed remove game ${sessionId}. Is already terminated. `);
+				return;
 			}
-	
+			
+			let orphans = sessionState.killSession(userid);
+			
+			delete this.sessions[sessionId];
+			this.gameCount--;
+			this.log(`SERVER    | ${userid} removed game ${sessionId}. There are now ${this.gameCount} games`);
+			
+			
+			//note: this causes bugs because the sessionStateId in app.js is never updated. either use an object pointer or just disconnect the clients
+			//orphans.forEach( c => this.findGame(c) );
+			
+			orphans.forEach(c => c.disconnect() );
 		}
 }
 

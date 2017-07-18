@@ -60,25 +60,26 @@ class SessionState {
 		return this.clients.find( c => c.userid === id);
 	}
 	
-	broadcast(message) {
+	broadcast(message, senderId) {
+
+		this.clients
+		.filter( c => c.userid !== senderId )
+		.forEach( c => c.send(message.serialize()) );
 		
-		this.clients.forEach((c) => {
-			c.send(message.serialize());
-		});
-		
+		//todo: i'd want to know how many clients made it through the filter
 		return this.clients.length;
 	}
 	
-	// only the host can kill the game
-	killSession() {
+	// only the host can kill the game <- not true right now
+	killSession(senderId) {
 		
 		this.gamecore.stopUpdate();
 		
-		this.broadcast(new message.endGame());
+		this.broadcast(new message.killGame());
 		
 		//return the orphaned players
 		return this.clients.filter((c) => {
-			return c.userid !== this.hostKey;
+			return c.userid !== senderId;
 		});
 	}
 }
