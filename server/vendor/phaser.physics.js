@@ -57,9 +57,9 @@ module.exports = {
     },
     
     /**
-    * preUpdate checks.
+    * Internal method.
     *
-    * @method Phaser.Physics#preUpdate
+    * @method Phaser.Physics.Arcade.Body#preUpdate
     * @protected
     */
     calculatePosition: function(velocity, deltaTime) {
