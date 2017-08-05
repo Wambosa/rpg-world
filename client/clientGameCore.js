@@ -1,6 +1,3 @@
-var RPG = RPG || {}; //note: temporarily here
-
-
 /**
  * This is meant to run on a client web browser, currently it is performing canvas draws directly.
  * in the near future, this will be converted to run with phaserJs instead
@@ -124,15 +121,24 @@ class ClientGameCore extends GameCore {
 			intervalFunc: this.updatePhysics.bind(this)
 		});
 		
-		RPG.dim = RPG.getGameLandscapeDimensions(440, 400);
+		this.mouse = {
+			x: 0,
+			y: 0,
+			down: false
+		}
 		
-		RPG.game = new Phaser.Game(RPG.dim.w, RPG.dim.h, Phaser.AUTO);
+		document.onmousemove = (e) => {
+			this.mouse.x = e.offsetX;
+			this.mouse.y = e.offsetY;
+		}
 		
-		RPG.game.state.add('Boot', RPG.BootState); 
-		RPG.game.state.add('Preload', RPG.PreloadState); 
-		RPG.game.state.add('Game', RPG.GameState);
+		document.onmousedown = (e) => {
+			this.mouse.down = true;
+		}
 		
-		RPG.game.state.start('Boot');
+		document.onmouseup = () => {
+			this.mouse.down = false;
+		}
 	}
 	
 	update(t){
@@ -145,8 +151,9 @@ class ClientGameCore extends GameCore {
 		if(this.showHelp)
 			this.drawHelp();
 	
-		//Capture inputs from the player
-		this.handleInput();
+		//Capture and send inputs from the player
+		//this.sendKeyboardInput();
+		this.sendMouseInput();
 	
 		//Network player just gets drawn normally, with interpolation from
 		//the server updates, smoothing out the positions from the past.
@@ -157,7 +164,8 @@ class ClientGameCore extends GameCore {
 	
 		//Now they should have updated, we can draw the entity
 		this.players.other.draw(this.ctx);
-	
+
+
 		//When we are doing client side prediction, we smooth out our position
 		//across frames using local input states we have stored.
 		this.updateLocalPosition();
@@ -185,10 +193,10 @@ class ClientGameCore extends GameCore {
 	 * This takes input from the client and keeps a record,
 	 * It also sends the input information to the server immediately
 	 * as it is pressed. It also tags each input with a sequence number
-	 * handleInput
+	 * sendKeyboardInput
 	 * @returns {{x: Number, y: Number}} - a vector
 	 */
-	handleInput() {
+	sendKeyboardInput() {
 
 		let xDir = 0;
 		let yDir = 0;
@@ -248,6 +256,28 @@ class ClientGameCore extends GameCore {
 				x: 0,
 				y: 0
 			};
+		}
+	}
+
+	sendMouseInput() {
+		
+		if(this.mouse.down) {
+			
+			let input = { x:this.mouse.x, y:this.mouse.y };
+			
+			this.inputSeq += 1;
+			
+			//Store the input state as a snapshot of what happened.
+			this.players.self.inputs.push({
+				inputs : input,
+				time : Util.trimFloat(this.clock.time),
+				seq : this.inputSeq
+			});
+			
+			//this is annoying because i am using an array here and just dont need it for mouse
+			let m = new ClientMouseInput([input], this.clock.time, this.inputSeq);
+			
+			this.socket.send(m.serialize());
 		}
 	}
 
@@ -507,16 +537,24 @@ class ClientGameCore extends GameCore {
 	 */
 	updatePhysics() {
 	
-		if(this.clientPredict) {
+		if(this.clientPredict && this.players.self.inputs.length) {
 			
 			let localPlayer = this.players.self;
 			
-			localPlayer.oldState.pos = Util.copy( localPlayer.curState.pos );
+			//warn: might be a problem since i am now copying from pos instead of curPos
+			//localPlayer.oldState.pos = Util.copy( localPlayer.curState.pos );
 			
-			//note: this prevents moving more than one step per frame, yet also may aid in te 144 spike bug
-			let direction = this.processInput(localPlayer);
-			localPlayer.curState.pos = this.vAdd( localPlayer.oldState.pos, direction);
-			localPlayer.stateTime = this.clock.time;
+			
+			let lastTarget = localPlayer.inputs[localPlayer.inputs.length-1].inputs;
+			
+			let moveStep = this.calculateMoveStep(localPlayer, lastTarget, this.physicsClock.deltaTime);
+			
+			localPlayer.oldState = moveStep.old;
+			localPlayer.curState.pos = moveStep.new.pos;
+			localPlayer.target = moveStep.new.target;
+			localPlayer.velocity = moveStep.new.velocity;
+			
+			localPlayer.stateTime = this.physicsClock.time;
 		}
 	}
 	

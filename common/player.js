@@ -24,7 +24,11 @@ class Player {
 
 		this.socketClient = socketClient;
 	
+		this.speed = 60;
+		this.velocity = {x:0, y:0};
+	
 		this.pos = { x: 1, y:1 };
+		this.target = { x: 1, y:1 };
 		this.size = { x:16, y:16, hx:8, hy:8 };
 		this.state = 'not-connected';
 		this.color = 'rgba(255,255,255,0.1)';
@@ -38,8 +42,9 @@ class Player {
 	
 		//Our local history of inputs
 		this.inputs = [];
+		this.lastInputSeq = 0;
 	
-		//The world bounds we are confined to
+		//The world bounds we are confined to (not being used?)
 		let boundry = { x: 720, y: 480 };
 		
 		this.posLimits = {

@@ -8,6 +8,7 @@ const KILL_GAME_HINT      = "k";
 const CONFIG_HINT         = "c";
 const RESET_HINT          = "r";
 const INPUT_HINT          = "i";
+const MOUSE_HINT          = "m";
 const PING_HINT           = "p";
 const TIME_HINT           = "t";
 
@@ -130,10 +131,37 @@ class ClientInput extends BaseMessage {
 		
 		let slices = raw.split("|");
 		let input = slices[1].split(",");
-		let clockTime = slices[2];
-		let sequence = slices[3];
+		let clockTime = +slices[2];
+		let sequence = +slices[3];
 		
 		return new ClientInput(input, clockTime, sequence);
+	}
+}
+
+class ClientMouseInput extends ClientInput {
+
+	constructor(input, clockTime, sequence) {
+		super(input, clockTime, sequence);
+		
+		this.input.forEach(function(i) {
+			i.toString = function () {return `${this.x} ${this.y}`};
+		});
+		
+		this.hint = `${CLIENT_MESSAGE_HINT}.${MOUSE_HINT}`;
+	}
+	
+	static deserialize(raw) {
+		
+		let slices = raw.split("|");
+		let unparsedInput = slices[1].split(",")
+		let input = unparsedInput.map((i) => { 
+			let parsed = i.split(" ");
+			return {x: parsed[0], y: parsed[1]}; 
+		});
+		let clockTime = +slices[2];
+		let sequence = +slices[3];
+		
+		return new ClientMouseInput(input, clockTime, sequence);
 	}
 }
 
@@ -174,13 +202,14 @@ class KillGame extends BaseMessage {
 	}
 }
 
-const CLASS_MAP = {
+const HINT_MAP = {
 	"s.h": HostPromotion,
 	"s.r": ResetGame,
 	"s.p": Ping,
 	"c.p": Ping,
 	"s.j": ClientJoin,
 	"c.i": ClientInput,
+	"c.m": ClientMouseInput,
 	"c.c": ClientConfiguration,
 	"s.k": KillGame,
 };
@@ -196,6 +225,8 @@ module.exports = {
 	ping: Ping,
 
 	clientInput: ClientInput,
+	
+	clientMouseInput: ClientMouseInput,
 
 	clientConfiguration: ClientConfiguration,
 	
@@ -205,7 +236,7 @@ module.exports = {
 		
 		let hint = raw.split("|")[0];
 		
-		let hintedClass = CLASS_MAP[hint] || BaseMessage;
+		let hintedClass = HINT_MAP[hint] || BaseMessage;
 		
 		return hintedClass.deserialize(raw);
 	}

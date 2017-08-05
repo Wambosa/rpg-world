@@ -67,7 +67,7 @@ class GameManager {
 	
 	routeMessage (sessionState, client, messageClass) {
 	
-		if(messageClass instanceof message.clientInput) {
+		if(messageClass instanceof message.clientMouseInput) {
 			
 			return sessionState.gamecore.stashClientInput(client, messageClass);
 			
@@ -85,6 +85,10 @@ class GameManager {
 			}
 			//note: there are not any secrets to worry about, so we can let the clients filter the broadcast
 			return sessionState.broadcast(messageClass, client.userid);
+		}else {
+			
+			//note: make sure my messages aren't getting lost in deserialization
+			console.warn(`routeMessage unable to route messageClass ${messageClass.hint}`);
 		}
 	}
 
