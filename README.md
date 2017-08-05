@@ -1,6 +1,9 @@
 # rpg-world
 _phaserjs movement + socket.io experiment_
 
+This project consisted of two repos that were vastly different. 
+The result is a refactor of the two into a rough proof of concept.
+
 
 ## requirements
 - npm (node package manager)
@@ -9,7 +12,6 @@ _phaserjs movement + socket.io experiment_
 
 
 ## usage
-_can view the incomplete demo[here](http://multiplayer-playground-wambosa.c9users.io:8081/) **if i am online**_
 - `git clone git@github.com:Wambosa/rpg-world.git`
 - `cd rpg-world`
 - `npm install`
@@ -38,15 +40,11 @@ _can view the incomplete demo[here](http://multiplayer-playground-wambosa.c9user
 ### future
 _the multiplayer code works, and needs a total makeover. some starting points are here. although there are many more_
 
-- do a generic message serialize based on built in arguments.front(this.hint), JSON.parse and  + [].join)("|")
-
 - todo: artificalLag is global to all sessions! needs to be locked into a single session for a single user!
 
 - refactor the client.userid to clientId
 
 - bug: when the client leaves, the game is reset
-- change payload delimiter from "." to "|" (pipe)
-	- will be able to avoid using common symbols like periods, commas, or underscores
 
 - the idea of players.self and players.other wants to be a dictionary or array
 	- remove this unscaleable and code duplicating approach
